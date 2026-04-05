@@ -12,8 +12,10 @@ import androidx.compose.runtime.setValue
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import edu.hust.medicalaichatbot.ui.screens.HomeScreen
 import edu.hust.medicalaichatbot.ui.screens.LoginScreen
 import edu.hust.medicalaichatbot.ui.screens.OnboardingScreen
+import edu.hust.medicalaichatbot.ui.screens.RegisterScreen
 import edu.hust.medicalaichatbot.ui.screens.SplashScreen
 import edu.hust.medicalaichatbot.ui.theme.MedicalAIChatbotTheme
 
@@ -50,10 +52,24 @@ fun MedicalApp() {
         }
         composable("login") {
             LoginScreen(
-                onLoginSuccess = { /* Navigate to Home */ },
-                onSkipLogin = { /* Navigate to Home */ },
-                onRegisterClick = { /* Navigate to Register */ }
+                onLoginSuccess = { navController.navigate("home") },
+                onSkipLogin = { navController.navigate("home") },
+                onRegisterClick = { navController.navigate("register") }
             )
+        }
+        composable("register") {
+            RegisterScreen(
+                onBackClick = { navController.popBackStack() },
+                onRegisterSuccess = { 
+                    navController.navigate("home") {
+                        popUpTo("register") { inclusive = true }
+                    }
+                },
+                onLoginClick = { navController.navigate("login") }
+            )
+        }
+        composable("home") {
+            HomeScreen()
         }
     }
 }
