@@ -8,6 +8,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material3.*
@@ -24,15 +25,28 @@ import androidx.compose.ui.unit.sp
 import edu.hust.medicalaichatbot.ui.theme.LightBlue
 import edu.hust.medicalaichatbot.ui.theme.PrimaryBlue
 import edu.hust.medicalaichatbot.ui.theme.TextGray
+import edu.hust.medicalaichatbot.ui.viewmodel.AuthState
+import edu.hust.medicalaichatbot.ui.viewmodel.AuthViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LoginScreen(
+    viewModel: AuthViewModel,
     onLoginSuccess: () -> Unit,
     onSkipLogin: () -> Unit,
     onRegisterClick: () -> Unit
 ) {
     var phoneNumber by remember { mutableStateOf("") }
+    var password by remember { mutableStateOf("") }
+    
+    val authState by viewModel.authState.collectAsState()
+
+    LaunchedEffect(authState) {
+        if (authState is AuthState.Success) {
+            onLoginSuccess()
+            viewModel.resetState()
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -128,7 +142,10 @@ fun LoginScreen(
                     )
                     OutlinedTextField(
                         value = phoneNumber,
-                        onValueChange = { phoneNumber = it },
+                        onValueChange = { 
+                            phoneNumber = it
+                            if (authState is AuthState.Error) viewModel.resetState()
+                        },
                         modifier = Modifier.fillMaxWidth(),
                         placeholder = { Text("Nhập số điện thoại", color = Color.LightGray) },
                         leadingIcon = {
@@ -149,20 +166,73 @@ fun LoginScreen(
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
                         singleLine = true
                     )
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Text(
+                        text = "Mật khẩu",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = Color.Black,
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
+                    OutlinedTextField(
+                        value = password,
+                        onValueChange = { 
+                            password = it
+                            if (authState is AuthState.Error) viewModel.resetState()
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        placeholder = { Text("Nhập mật khẩu", color = Color.LightGray) },
+                        leadingIcon = {
+                            Icon(
+                                Icons.Default.Lock,
+                                contentDescription = null,
+                                tint = TextGray,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        },
+                        shape = RoundedCornerShape(32.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedContainerColor = Color(0xFFE9ECEF),
+                            unfocusedContainerColor = Color(0xFFE9ECEF),
+                            focusedBorderColor = PrimaryBlue,
+                            unfocusedBorderColor = Color.Transparent,
+                        ),
+                        visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation(),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                        singleLine = true
+                    )
+
+                    if (authState is AuthState.Error) {
+                        Text(
+                            text = (authState as AuthState.Error).message,
+                            color = Color.Red,
+                            fontSize = 12.sp,
+                            modifier = Modifier.padding(top = 8.dp, start = 16.dp)
+                        )
+                    }
                 }
 
                 Spacer(modifier = Modifier.height(24.dp))
 
                 // Action Buttons
                 Button(
-                    onClick = onLoginSuccess,
+                    onClick = {
+                        viewModel.login(phoneNumber, password)
+                    },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(56.dp),
                     shape = RoundedCornerShape(28.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue)
+                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue),
+                    enabled = phoneNumber.isNotBlank() && password.isNotBlank() && authState !is AuthState.Loading
                 ) {
-                    Text("Đăng nhập", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                    if (authState is AuthState.Loading) {
+                        CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
+                    } else {
+                        Text("Đăng nhập", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                    }
                 }
 
                 Spacer(modifier = Modifier.height(12.dp))

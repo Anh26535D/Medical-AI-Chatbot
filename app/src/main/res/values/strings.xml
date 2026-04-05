@@ -1,3 +1,31 @@
 <resources>
     <string name="app_name">Medical AI Chatbot</string>
+    <string name="app_title">Sức Khỏe Việt AI</string>
+    <string name="chat_welcome_msg">Chào Chị, tôi là trợ lý sức khỏe AI của bạn. Hôm nay bạn cảm thấy thế nào ạ? Bạn có cần tôi giúp kiểm tra triệu chứng gì không?</string>
+    <string name="ai_analyzing">AI đang phân tích...</string>
+    <string name="error_generic">Đã xảy ra lỗi hệ thống. Vui lòng thử lại sau.</string>
+    <string name="input_placeholder">Mô tả triệu chứng của bạn...</string>
+    <string name="msg_too_long">Tin nhắn của bạn quá dài. Vui lòng tóm tắt ngắn gọn hơn.</string>
+    <string name="ai_error_process">Xin lỗi, tôi không thể xử lý yêu cầu này.</string>
+    <string name="today_label">Hôm nay, %1$s</string>
+
+    <!-- Quick Actions -->
+    <string name="quick_actions_title">Hành động nhanh</string>
+    <string name="action_add_symptom">Thêm triệu chứng</string>
+    <string name="action_emergency">Cấp cứu</string>
+    <string name="action_ask_pharmacist">Hỏi dược sĩ</string>
+    <string name="action_see_doctor">Gặp bác sĩ</string>
+
+    <!-- Selection -->
+    <string name="ask_for_whom">Bạn đang hỏi cho ai?</string>
+    <string name="label_me">Tôi</string>
+    <string name="label_dad">Bố</string>
+    <string name="label_mom">Mẹ</string>
+    <string name="label_baby">Bé</string>
+
+    <!-- Navigation -->
+    <string name="nav_home">Trang chủ</string>
+    <string name="nav_history">Lịch sử</string>
+    <string name="nav_profile">Hồ sơ</string>
+    <string name="nav_help">Trợ giúp</string>
 </resources>

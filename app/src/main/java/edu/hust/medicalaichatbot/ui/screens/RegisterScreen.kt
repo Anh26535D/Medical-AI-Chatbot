@@ -5,7 +5,9 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material3.*
@@ -18,19 +20,33 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import edu.hust.medicalaichatbot.data.local.entity.User
 import edu.hust.medicalaichatbot.ui.theme.PrimaryBlue
 import edu.hust.medicalaichatbot.ui.theme.TextGray
+import edu.hust.medicalaichatbot.ui.viewmodel.AuthState
+import edu.hust.medicalaichatbot.ui.viewmodel.AuthViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RegisterScreen(
+    viewModel: AuthViewModel,
     onBackClick: () -> Unit,
     onRegisterSuccess: () -> Unit,
     onLoginClick: () -> Unit
 ) {
     var fullName by remember { mutableStateOf("") }
     var phoneNumber by remember { mutableStateOf("") }
+    var password by remember { mutableStateOf("") }
     var agreeToTerms by remember { mutableStateOf(false) }
+
+    val authState by viewModel.authState.collectAsState()
+
+    LaunchedEffect(authState) {
+        if (authState is AuthState.Success) {
+            onRegisterSuccess()
+            viewModel.resetState()
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -49,7 +65,7 @@ fun RegisterScreen(
         ) {
             IconButton(onClick = onBackClick) {
                 Icon(
-                    imageVector = Icons.Default.ArrowBack,
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                     contentDescription = "Quay lại",
                     tint = TextGray
                 )
@@ -166,6 +182,52 @@ fun RegisterScreen(
                     )
                 }
 
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Password Input
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    Text(
+                        text = "Mật khẩu",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = Color.Black,
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
+                    OutlinedTextField(
+                        value = password,
+                        onValueChange = { password = it },
+                        modifier = Modifier.fillMaxWidth(),
+                        placeholder = { Text("Nhập mật khẩu", color = Color.LightGray) },
+                        leadingIcon = {
+                            Icon(
+                                Icons.Default.Lock,
+                                contentDescription = null,
+                                tint = TextGray,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        },
+                        shape = RoundedCornerShape(32.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedContainerColor = Color(0xFFE9ECEF),
+                            unfocusedContainerColor = Color(0xFFE9ECEF),
+                            focusedBorderColor = PrimaryBlue,
+                            unfocusedBorderColor = Color.Transparent,
+                        ),
+                        visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation(),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                        singleLine = true
+                    )
+                }
+
+                if (authState is AuthState.Error) {
+                    Text(
+                        text = (authState as AuthState.Error).message,
+                        color = Color.Red,
+                        fontSize = 12.sp,
+                        modifier = Modifier.padding(top = 8.dp)
+                    )
+                }
+
                 Spacer(modifier = Modifier.height(24.dp))
 
                 // Agreement
@@ -189,15 +251,21 @@ fun RegisterScreen(
 
                 // Register Button
                 Button(
-                    onClick = onRegisterSuccess,
+                    onClick = {
+                        viewModel.register(User(name = fullName, phoneNumber = phoneNumber, password = password))
+                    },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(56.dp),
                     shape = RoundedCornerShape(28.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue),
-                    enabled = agreeToTerms && fullName.isNotBlank() && phoneNumber.isNotBlank()
+                    enabled = agreeToTerms && fullName.isNotBlank() && phoneNumber.isNotBlank() && password.isNotBlank() && authState !is AuthState.Loading
                 ) {
-                    Text("Đăng ký", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                    if (authState is AuthState.Loading) {
+                        CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
+                    } else {
+                        Text("Đăng ký", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                    }
                 }
 
                 Spacer(modifier = Modifier.height(24.dp))

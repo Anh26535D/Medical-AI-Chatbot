@@ -1,47 +1,61 @@
 package edu.hust.medicalaichatbot.ui.screens
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.HelpOutline
+import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.PersonOutline
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import edu.hust.medicalaichatbot.ui.theme.LightBlue
-import edu.hust.medicalaichatbot.ui.theme.PrimaryBlue
-import edu.hust.medicalaichatbot.ui.theme.TextGray
+import androidx.lifecycle.viewmodel.compose.viewModel
+import edu.hust.medicalaichatbot.R
+import edu.hust.medicalaichatbot.data.model.ChatMessage
+import edu.hust.medicalaichatbot.data.model.MessageRole
+import edu.hust.medicalaichatbot.ui.theme.*
+import edu.hust.medicalaichatbot.ui.viewmodel.ChatViewModel
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 @Composable
-fun HomeScreen() {
+fun HomeScreen(chatViewModel: ChatViewModel = viewModel()) {
+    val messages by chatViewModel.messages.collectAsState()
+    val isLoading by chatViewModel.isLoading.collectAsState()
+    
     Scaffold(
         topBar = { HomeTopBar() },
         bottomBar = { HomeBottomNavigation() },
-        containerColor = Color(0xFFF8F9FA)
+        containerColor = BackgroundGray
     ) { paddingValues ->
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            ChatSection(modifier = Modifier.weight(1f))
+            ChatSection(
+                messages = messages,
+                isLoading = isLoading,
+                modifier = Modifier.weight(1f)
+            )
             QuickActionsSection()
-            MessageInput()
+            MessageInput(onSendMessage = { chatViewModel.sendMessage(it) })
         }
     }
 }
@@ -73,7 +87,7 @@ fun HomeTopBar() {
             }
             Spacer(modifier = Modifier.width(12.dp))
             Text(
-                text = "Sức Khỏe Việt AI",
+                text = stringResource(R.string.app_title),
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
                 color = PrimaryBlue
@@ -85,80 +99,88 @@ fun HomeTopBar() {
             shape = CircleShape,
             color = Color.LightGray
         ) {
-            // Profile image placeholder
             Icon(Icons.Default.Person, contentDescription = null, tint = Color.White)
         }
     }
 }
 
 @Composable
-fun ChatSection(modifier: Modifier = Modifier) {
+fun ChatSection(
+    messages: List<ChatMessage>,
+    isLoading: Boolean,
+    modifier: Modifier = Modifier
+) {
+    val listState = rememberLazyListState()
+    
+    LaunchedEffect(messages.size) {
+        if (messages.isNotEmpty()) {
+            listState.animateScrollToItem(messages.size - 1)
+        }
+    }
+
     LazyColumn(
+        state = listState,
         modifier = modifier.padding(horizontal = 16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         item {
             Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                val dateString = SimpleDateFormat("dd MMMM", Locale.forLanguageTag("vi")).format(Date())
                 Text(
-                    text = "Hôm nay, 24 Tháng 5",
+                    text = stringResource(R.string.today_label, dateString),
                     fontSize = 12.sp,
                     color = TextGray,
                     modifier = Modifier
-                        .background(Color(0xFFE9ECEF), RoundedCornerShape(12.dp))
+                        .background(SurfaceGray, RoundedCornerShape(12.dp))
                         .padding(horizontal = 12.dp, vertical = 4.dp)
                 )
             }
         }
 
-        item {
-            AiMessage(
-                text = "Chào Chị, tôi là trợ lý sức khỏe AI của bạn. Hôm nay bạn cảm thấy thế nào ạ? Bạn có cần tôi giúp kiểm tra triệu chứng gì không?"
-            )
+        items(messages) { message ->
+            if (message.role == MessageRole.AI) {
+                AiMessage(text = message.text, timestamp = message.timestamp)
+            } else {
+                UserMessage(text = message.text, timestamp = message.timestamp)
+            }
         }
 
-        item {
-            UserSelectionSection()
+        if (messages.size == 1 && messages[0].role == MessageRole.AI) {
+            item {
+                UserSelectionSection()
+            }
         }
 
-        item {
-            UserMessage(
-                text = "Chào bạn, sáng nay tôi thấy hơi đau đầu và nhức mỏi vai gáy. Không biết có phải do thời tiết thay đổi không?"
-            )
-        }
-
-        item {
-            AiMessage(
-                text = "Tôi ghi nhận tình trạng đau đầu và mỏi vai gáy của bạn. Để phân tích kỹ hơn, bạn cho tôi hỏi:\n• Cơn đau có lan xuống cánh tay không ạ?\n• Bạn có thấy chóng mặt hay buồn nôn không?"
-            )
-        }
-
-        item {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Surface(
-                    modifier = Modifier.size(32.dp),
-                    shape = CircleShape,
-                    color = Color(0xFFE9ECEF)
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Icon(Icons.Default.SmartToy, contentDescription = null, modifier = Modifier.size(16.dp), tint = TextGray)
+        if (isLoading) {
+            item {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Surface(
+                        modifier = Modifier.size(32.dp),
+                        shape = CircleShape,
+                        color = SurfaceGray
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(Icons.Default.SmartToy, contentDescription = null, modifier = Modifier.size(16.dp), tint = TextGray)
+                        }
                     }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = stringResource(R.string.ai_analyzing),
+                        fontSize = 12.sp,
+                        color = TextGray,
+                        modifier = Modifier
+                            .background(SurfaceGray, RoundedCornerShape(16.dp))
+                            .padding(horizontal = 12.dp, vertical = 6.dp)
+                    )
                 }
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = "AI đang phân tích...",
-                    fontSize = 12.sp,
-                    color = TextGray,
-                    modifier = Modifier
-                        .background(Color(0xFFE9ECEF), RoundedCornerShape(16.dp))
-                        .padding(horizontal = 12.dp, vertical = 6.dp)
-                )
             }
         }
     }
 }
 
 @Composable
-fun AiMessage(text: String) {
+fun AiMessage(text: String, timestamp: Long = System.currentTimeMillis()) {
+    val timeFormat = SimpleDateFormat("HH:mm a", Locale.getDefault())
     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Start) {
         Surface(
             modifier = Modifier.size(36.dp),
@@ -184,7 +206,7 @@ fun AiMessage(text: String) {
                 )
             }
             Text(
-                text = "08:15 AM",
+                text = timeFormat.format(Date(timestamp)),
                 fontSize = 10.sp,
                 color = TextGray,
                 modifier = Modifier.padding(top = 4.dp, start = 4.dp)
@@ -194,7 +216,8 @@ fun AiMessage(text: String) {
 }
 
 @Composable
-fun UserMessage(text: String) {
+fun UserMessage(text: String, timestamp: Long = System.currentTimeMillis()) {
+    val timeFormat = SimpleDateFormat("HH:mm a", Locale.getDefault())
     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
         Column(horizontalAlignment = Alignment.End) {
             Surface(
@@ -210,7 +233,7 @@ fun UserMessage(text: String) {
                 )
             }
             Text(
-                text = "08:16 AM",
+                text = timeFormat.format(Date(timestamp)),
                 fontSize = 10.sp,
                 color = TextGray,
                 modifier = Modifier.padding(top = 4.dp, end = 4.dp)
@@ -220,7 +243,7 @@ fun UserMessage(text: String) {
         Surface(
             modifier = Modifier.size(36.dp),
             shape = CircleShape,
-            color = Color(0xFF90EE90) // Light green
+            color = UserAvatarGreen
         ) {
             Box(contentAlignment = Alignment.Center) {
                 Icon(Icons.Default.Person, contentDescription = null, tint = Color.White, modifier = Modifier.size(20.dp))
@@ -232,20 +255,14 @@ fun UserMessage(text: String) {
 @Composable
 fun UserSelectionSection() {
     Column(modifier = Modifier.padding(start = 44.dp)) {
-        Text(text = "Bạn đang hỏi cho ai?", fontSize = 12.sp, fontWeight = FontWeight.Medium, color = Color.Black)
+        Text(text = stringResource(R.string.ask_for_whom), fontSize = 12.sp, fontWeight = FontWeight.Medium, color = Color.Black)
         Spacer(modifier = Modifier.height(8.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            SelectionAvatar("Tôi", true)
-            SelectionAvatar("Bố", false)
-            SelectionAvatar("Mẹ", false)
-            SelectionAvatar("Bé", false)
+            SelectionAvatar(stringResource(R.string.label_me), true)
+            SelectionAvatar(stringResource(R.string.label_dad), false)
+            SelectionAvatar(stringResource(R.string.label_mom), false)
+            SelectionAvatar(stringResource(R.string.label_baby), false)
         }
-        Text(
-            text = "08:15 AM",
-            fontSize = 10.sp,
-            color = TextGray,
-            modifier = Modifier.padding(top = 8.dp)
-        )
     }
 }
 
@@ -261,11 +278,11 @@ fun SelectionAvatar(label: String, isSelected: Boolean) {
                     shape = CircleShape
                 ),
             shape = CircleShape,
-            color = if (isSelected) Color.White else Color(0xFFE9ECEF)
+            color = if (isSelected) Color.White else SurfaceGray
         ) {
             Box(contentAlignment = Alignment.Center) {
                 Icon(
-                    imageVector = if (label == "Tôi") Icons.Default.Person else Icons.Default.PersonOutline,
+                    imageVector = if (label == stringResource(R.string.label_me)) Icons.Default.Person else Icons.Outlined.PersonOutline,
                     contentDescription = null,
                     tint = if (isSelected) PrimaryBlue else TextGray
                 )
@@ -285,20 +302,20 @@ fun SelectionAvatar(label: String, isSelected: Boolean) {
 fun QuickActionsSection() {
     Column(modifier = Modifier.padding(16.dp)) {
         Text(
-            text = "Hành động nhanh",
+            text = stringResource(R.string.quick_actions_title),
             fontSize = 16.sp,
             fontWeight = FontWeight.Bold,
             color = PrimaryBlue
         )
         Spacer(modifier = Modifier.height(12.dp))
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            QuickActionCard("Thêm triệu chứng", Icons.Default.AddCircleOutline, Color(0xFFE3F2FD), PrimaryBlue, Modifier.weight(1f))
-            QuickActionCard("Cấp cứu", Icons.Default.Emergency, Color(0xFFFFEBEE), Color.Red, Modifier.weight(1f))
+            QuickActionCard(stringResource(R.string.action_add_symptom), Icons.Default.AddCircleOutline, LightBlue, PrimaryBlue, Modifier.weight(1f))
+            QuickActionCard(stringResource(R.string.action_emergency), Icons.Default.Emergency, EmergencyRed, Color.Red, Modifier.weight(1f))
         }
         Spacer(modifier = Modifier.height(12.dp))
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            QuickActionCard("Hỏi dược sĩ", Icons.Default.MedicalServices, Color(0xFFF5F5F5), TextGray, Modifier.weight(1f))
-            QuickActionCard("Gặp bác sĩ", Icons.Default.MedicalInformation, Color(0xFFE8F5E9), Color(0xFF4CAF50), Modifier.weight(1f))
+            QuickActionCard(stringResource(R.string.action_ask_pharmacist), Icons.Default.MedicalServices, SurfaceGray, TextGray, Modifier.weight(1f))
+            QuickActionCard(stringResource(R.string.action_see_doctor), Icons.Default.MedicalInformation, SuccessGreen, Color(0xFF4CAF50), Modifier.weight(1f))
         }
     }
 }
@@ -328,7 +345,9 @@ fun QuickActionCard(label: String, icon: ImageVector, bgColor: Color, iconColor:
 }
 
 @Composable
-fun MessageInput() {
+fun MessageInput(onSendMessage: (String) -> Unit) {
+    var text by remember { mutableStateOf("") }
+    
     Surface(
         modifier = Modifier
             .fillMaxWidth()
@@ -343,21 +362,48 @@ fun MessageInput() {
         ) {
             Icon(Icons.Default.AttachFile, contentDescription = null, tint = TextGray)
             Spacer(modifier = Modifier.width(8.dp))
-            Text(
-                text = "Mô tả triệu chứng của bạn...",
-                color = Color.LightGray,
-                fontSize = 14.sp,
-                modifier = Modifier.weight(1f)
+            
+            TextField(
+                value = text,
+                onValueChange = { text = it },
+                placeholder = {
+                    Text(
+                        text = stringResource(R.string.input_placeholder),
+                        color = Color.LightGray,
+                        fontSize = 14.sp
+                    )
+                },
+                modifier = Modifier.weight(1f),
+                colors = TextFieldDefaults.colors(
+                    focusedContainerColor = Color.Transparent,
+                    unfocusedContainerColor = Color.Transparent,
+                    disabledContainerColor = Color.Transparent,
+                    focusedIndicatorColor = Color.Transparent,
+                    unfocusedIndicatorColor = Color.Transparent,
+                ),
+                singleLine = false,
+                maxLines = 4
             )
+            
             Icon(Icons.Default.Mic, contentDescription = null, tint = TextGray)
             Spacer(modifier = Modifier.width(12.dp))
-            Surface(
+            IconButton(
+                onClick = {
+                    if (text.isNotBlank()) {
+                        onSendMessage(text)
+                        text = ""
+                    }
+                },
                 modifier = Modifier.size(40.dp),
-                shape = CircleShape,
-                color = PrimaryBlue
+                enabled = text.isNotBlank()
             ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(Icons.Default.Send, contentDescription = null, tint = Color.White, modifier = Modifier.size(20.dp))
+                Surface(
+                    shape = CircleShape,
+                    color = if (text.isNotBlank()) PrimaryBlue else Color.LightGray
+                ) {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Icon(Icons.AutoMirrored.Filled.Send, contentDescription = null, tint = Color.White, modifier = Modifier.size(20.dp))
+                    }
                 }
             }
         }
@@ -372,7 +418,7 @@ fun HomeBottomNavigation() {
     ) {
         NavigationBarItem(
             icon = { Icon(Icons.Default.Home, contentDescription = null) },
-            label = { Text("Trang chủ") },
+            label = { Text(stringResource(R.string.nav_home)) },
             selected = true,
             onClick = {},
             colors = NavigationBarItemDefaults.colors(
@@ -385,21 +431,21 @@ fun HomeBottomNavigation() {
         )
         NavigationBarItem(
             icon = { Icon(Icons.Default.History, contentDescription = null) },
-            label = { Text("Lịch sử") },
+            label = { Text(stringResource(R.string.nav_history)) },
             selected = false,
             onClick = {},
             colors = NavigationBarItemDefaults.colors(unselectedIconColor = TextGray, unselectedTextColor = TextGray)
         )
         NavigationBarItem(
-            icon = { Icon(Icons.Default.PersonOutline, contentDescription = null) },
-            label = { Text("Hồ sơ") },
+            icon = { Icon(Icons.Outlined.PersonOutline, contentDescription = null) },
+            label = { Text(stringResource(R.string.nav_profile)) },
             selected = false,
             onClick = {},
             colors = NavigationBarItemDefaults.colors(unselectedIconColor = TextGray, unselectedTextColor = TextGray)
         )
         NavigationBarItem(
-            icon = { Icon(Icons.Default.HelpOutline, contentDescription = null) },
-            label = { Text("Trợ giúp") },
+            icon = { Icon(Icons.AutoMirrored.Filled.HelpOutline, contentDescription = null) },
+            label = { Text(stringResource(R.string.nav_help)) },
             selected = false,
             onClick = {},
             colors = NavigationBarItemDefaults.colors(unselectedIconColor = TextGray, unselectedTextColor = TextGray)
