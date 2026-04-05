@@ -58,6 +58,8 @@ dependencies {
     // Firebase AI Logic (Gemini API for Android)
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.ai)
+    implementation(libs.firebase.auth)
+    implementation(libs.firebase.config)
 
     // Room
     implementation(libs.androidx.room.runtime)
