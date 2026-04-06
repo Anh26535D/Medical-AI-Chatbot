@@ -25,9 +25,13 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.paging.compose.LazyPagingItems
+import androidx.paging.compose.collectAsLazyPagingItems
+import androidx.paging.compose.itemContentType
+import androidx.paging.compose.itemKey
 import edu.hust.medicalaichatbot.R
-import edu.hust.medicalaichatbot.data.model.ChatMessage
-import edu.hust.medicalaichatbot.data.model.MessageRole
+import edu.hust.medicalaichatbot.domain.model.ChatMessage
+import edu.hust.medicalaichatbot.domain.model.MessageRole
 import edu.hust.medicalaichatbot.ui.theme.*
 import edu.hust.medicalaichatbot.ui.viewmodel.ChatViewModel
 import java.text.SimpleDateFormat
@@ -39,8 +43,15 @@ fun HomeScreen(
     chatViewModel: ChatViewModel = viewModel(),
     onHistoryClick: () -> Unit = {}
 ) {
-    val messages by chatViewModel.messages.collectAsState()
+    val messages = chatViewModel.messages.collectAsLazyPagingItems()
     val isLoading by chatViewModel.isLoading.collectAsState()
+    
+    // Ensure we have a thread set (for development/testing if not set by navigation)
+    LaunchedEffect(Unit) {
+        if (chatViewModel.currentThreadId.value == null) {
+            chatViewModel.setCurrentThread("default_thread")
+        }
+    }
     
     Scaffold(
         topBar = { HomeTopBar() },
@@ -109,15 +120,15 @@ fun HomeTopBar() {
 
 @Composable
 fun ChatSection(
-    messages: List<ChatMessage>,
+    messages: LazyPagingItems<ChatMessage>,
     isLoading: Boolean,
     modifier: Modifier = Modifier
 ) {
     val listState = rememberLazyListState()
     
-    LaunchedEffect(messages.size) {
-        if (messages.isNotEmpty()) {
-            listState.animateScrollToItem(messages.size - 1)
+    LaunchedEffect(messages.itemCount) {
+        if (messages.itemCount > 0) {
+            listState.animateScrollToItem(messages.itemCount - 1)
         }
     }
 
@@ -140,17 +151,27 @@ fun ChatSection(
             }
         }
 
-        items(messages) { message ->
-            if (message.role == MessageRole.AI) {
-                AiMessage(text = message.text, timestamp = message.timestamp)
-            } else {
-                UserMessage(text = message.text, timestamp = message.timestamp)
+        items(
+            count = messages.itemCount,
+            key = messages.itemKey { it.id },
+            contentType = messages.itemContentType { "chat_message" }
+        ) { index ->
+            val message = messages[index]
+            if (message != null) {
+                if (message.role == MessageRole.ASSISTANT || message.role == MessageRole.ERROR) {
+                    AiMessage(text = message.content, timestamp = message.timestamp)
+                } else {
+                    UserMessage(text = message.content, timestamp = message.timestamp)
+                }
             }
         }
 
-        if (messages.size == 1 && messages[0].role == MessageRole.AI) {
-            item {
-                UserSelectionSection()
+        if (messages.itemCount == 1) {
+            val firstMessage = messages[0]
+            if (firstMessage != null && (firstMessage.role == MessageRole.ASSISTANT || firstMessage.role == MessageRole.ERROR)) {
+                item {
+                    UserSelectionSection()
+                }
             }
         }
 
