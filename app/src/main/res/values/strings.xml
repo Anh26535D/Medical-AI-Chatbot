@@ -28,4 +28,13 @@
     <string name="nav_history">Lịch sử</string>
     <string name="nav_profile">Hồ sơ</string>
     <string name="nav_help">Trợ giúp</string>
+
+    <!-- History Screen -->
+    <string name="history_title">Lịch sử khám</string>
+    <string name="search_hint">Tìm kiếm triệu chứng...</string>
+    <string name="status_stable">Ổn định</string>
+    <string name="status_monitoring">Cần theo dõi</string>
+    <string name="view_details">Xem chi tiết</string>
+    <string name="doctor_in_charge">Bác sĩ phụ trách</string>
+    <string name="pharmacist_consultant">Dược sĩ tư vấn</string>
 </resources>
