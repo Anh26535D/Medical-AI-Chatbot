@@ -12,7 +12,9 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import edu.hust.medicalaichatbot.data.local.AppDatabase
 import edu.hust.medicalaichatbot.data.repository.AuthRepository
-import edu.hust.medicalaichatbot.data.repository.ChatRepository
+import edu.hust.medicalaichatbot.data.repository.ChatRepositoryImpl
+import edu.hust.medicalaichatbot.domain.usecase.chat.GetMessagesUseCase
+import edu.hust.medicalaichatbot.domain.usecase.chat.SendMessageUseCase
 import edu.hust.medicalaichatbot.ui.screens.HistoryScreen
 import edu.hust.medicalaichatbot.ui.screens.HomeScreen
 import edu.hust.medicalaichatbot.ui.screens.LoginScreen
@@ -37,9 +39,12 @@ class MainActivity : ComponentActivity() {
                     factory = AuthViewModel.Factory(authRepository)
                 )
 
-                val chatRepository = ChatRepository(database.chatDao())
+                val chatRepository = ChatRepositoryImpl(database.chatDao(), "gemini-1.5-flash")
+                val getMessagesUseCase = GetMessagesUseCase(chatRepository)
+                val sendMessageUseCase = SendMessageUseCase(chatRepository)
+                
                 val chatViewModel: ChatViewModel = viewModel(
-                    factory = ChatViewModel.Factory(application, chatRepository)
+                    factory = ChatViewModel.Factory(getMessagesUseCase, sendMessageUseCase)
                 )
 
                 MedicalApp(authViewModel, chatViewModel)
