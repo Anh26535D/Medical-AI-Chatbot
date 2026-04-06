@@ -12,6 +12,8 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import edu.hust.medicalaichatbot.data.local.AppDatabase
 import edu.hust.medicalaichatbot.data.repository.AuthRepository
+import edu.hust.medicalaichatbot.data.repository.ChatRepository
+import edu.hust.medicalaichatbot.ui.screens.HistoryScreen
 import edu.hust.medicalaichatbot.ui.screens.HomeScreen
 import edu.hust.medicalaichatbot.ui.screens.LoginScreen
 import edu.hust.medicalaichatbot.ui.screens.OnboardingScreen
@@ -19,6 +21,7 @@ import edu.hust.medicalaichatbot.ui.screens.RegisterScreen
 import edu.hust.medicalaichatbot.ui.screens.SplashScreen
 import edu.hust.medicalaichatbot.ui.theme.MedicalAIChatbotTheme
 import edu.hust.medicalaichatbot.ui.viewmodel.AuthViewModel
+import edu.hust.medicalaichatbot.ui.viewmodel.ChatViewModel
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -28,18 +31,25 @@ class MainActivity : ComponentActivity() {
             MedicalAIChatbotTheme {
                 val context = LocalContext.current
                 val database = AppDatabase.getDatabase(context)
-                val repository = AuthRepository(database.userDao())
+                
+                val authRepository = AuthRepository(database.userDao())
                 val authViewModel: AuthViewModel = viewModel(
-                    factory = AuthViewModel.Factory(repository)
+                    factory = AuthViewModel.Factory(authRepository)
                 )
-                MedicalApp(authViewModel)
+
+                val chatRepository = ChatRepository(database.chatDao())
+                val chatViewModel: ChatViewModel = viewModel(
+                    factory = ChatViewModel.Factory(application, chatRepository)
+                )
+
+                MedicalApp(authViewModel, chatViewModel)
             }
         }
     }
 }
 
 @Composable
-fun MedicalApp(authViewModel: AuthViewModel) {
+fun MedicalApp(authViewModel: AuthViewModel, chatViewModel: ChatViewModel) {
     val navController = rememberNavController()
     
     NavHost(navController = navController, startDestination = "splash") {
@@ -78,7 +88,19 @@ fun MedicalApp(authViewModel: AuthViewModel) {
             )
         }
         composable("home") {
-            HomeScreen()
+            HomeScreen(
+                chatViewModel = chatViewModel,
+                onHistoryClick = { navController.navigate("history") }
+            )
+        }
+        composable("history") {
+            HistoryScreen(
+                onHomeClick = { 
+                    navController.navigate("home") {
+                        popUpTo("home") { inclusive = true }
+                    }
+                }
+            )
         }
     }
 }

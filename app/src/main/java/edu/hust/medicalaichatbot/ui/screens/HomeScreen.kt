@@ -35,13 +35,16 @@ import java.util.Date
 import java.util.Locale
 
 @Composable
-fun HomeScreen(chatViewModel: ChatViewModel = viewModel()) {
+fun HomeScreen(
+    chatViewModel: ChatViewModel = viewModel(),
+    onHistoryClick: () -> Unit = {}
+) {
     val messages by chatViewModel.messages.collectAsState()
     val isLoading by chatViewModel.isLoading.collectAsState()
     
     Scaffold(
         topBar = { HomeTopBar() },
-        bottomBar = { HomeBottomNavigation() },
+        bottomBar = { HomeBottomNavigation(onHistoryClick) },
         containerColor = BackgroundGray
     ) { paddingValues ->
         Column(
@@ -411,7 +414,7 @@ fun MessageInput(onSendMessage: (String) -> Unit) {
 }
 
 @Composable
-fun HomeBottomNavigation() {
+fun HomeBottomNavigation(onHistoryClick: () -> Unit = {}) {
     NavigationBar(
         containerColor = Color.White,
         tonalElevation = 8.dp
@@ -433,7 +436,7 @@ fun HomeBottomNavigation() {
             icon = { Icon(Icons.Default.History, contentDescription = null) },
             label = { Text(stringResource(R.string.nav_history)) },
             selected = false,
-            onClick = {},
+            onClick = onHistoryClick,
             colors = NavigationBarItemDefaults.colors(unselectedIconColor = TextGray, unselectedTextColor = TextGray)
         )
         NavigationBarItem(
