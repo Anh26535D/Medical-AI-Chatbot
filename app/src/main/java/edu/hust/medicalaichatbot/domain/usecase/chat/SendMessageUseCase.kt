@@ -17,8 +17,9 @@ class SendMessageUseCase(private val repository: ChatRepository) {
         
         repository.sendMessage(userMessage)
         
-        // Get history for context (simplified here, usually you'd fetch from repo)
-        val responseResult = repository.getAiResponse(text, emptyList())
+        // Lấy lịch sử chat để làm ngữ cảnh cho AI
+        val history = repository.getMessagesList(threadId)
+        val responseResult = repository.getAiResponse(text, history)
         
         return responseResult.mapCatching { aiText ->
             val assistantMessage = ChatMessage(
