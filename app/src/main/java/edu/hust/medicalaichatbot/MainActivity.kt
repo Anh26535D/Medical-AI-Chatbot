@@ -24,6 +24,7 @@ import edu.hust.medicalaichatbot.ui.screens.SplashScreen
 import edu.hust.medicalaichatbot.ui.theme.MedicalAIChatbotTheme
 import edu.hust.medicalaichatbot.ui.viewmodel.AuthViewModel
 import edu.hust.medicalaichatbot.ui.viewmodel.ChatViewModel
+import edu.hust.medicalaichatbot.utils.Constants
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -39,7 +40,7 @@ class MainActivity : ComponentActivity() {
                     factory = AuthViewModel.Factory(authRepository)
                 )
 
-                val chatRepository = ChatRepositoryImpl(database.chatDao(), "gemini-1.5-flash")
+                val chatRepository = ChatRepositoryImpl(database.chatDao(), Constants.DEFAULT_MODEL)
                 val getMessagesUseCase = GetMessagesUseCase(chatRepository)
                 val sendMessageUseCase = SendMessageUseCase(chatRepository)
                 
