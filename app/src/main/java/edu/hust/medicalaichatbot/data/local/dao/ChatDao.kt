@@ -36,6 +36,9 @@ interface ChatDao {
     @Query("SELECT * FROM chat_messages WHERE threadOwnerId = :threadId ORDER BY timestamp ASC")
     fun getMessagesForThreadPaging(threadId: String): PagingSource<Int, ChatMessageEntity>
 
+    @Query("SELECT * FROM chat_messages WHERE threadOwnerId = :threadId ORDER BY timestamp ASC")
+    suspend fun getMessagesByThread(threadId: String): List<ChatMessageEntity>
+
     @Query("DELETE FROM chat_threads WHERE threadId = :threadId")
     suspend fun deleteThread(threadId: String)
 }

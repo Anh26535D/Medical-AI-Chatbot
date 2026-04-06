@@ -7,6 +7,7 @@ import kotlinx.coroutines.flow.Flow
 
 interface ChatRepository {
     fun getMessages(threadId: String): Flow<PagingData<ChatMessage>>
+    suspend fun getMessagesList(threadId: String): List<ChatMessage>
     fun getThreads(): Flow<List<ChatThread>>
     suspend fun sendMessage(message: ChatMessage): Result<Unit>
     suspend fun createThread(thread: ChatThread)
