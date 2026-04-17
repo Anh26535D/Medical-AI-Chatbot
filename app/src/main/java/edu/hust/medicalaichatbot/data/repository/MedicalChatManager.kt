@@ -16,9 +16,7 @@ class MedicalChatManager(
     private val _history = initialHistory.toMutableList()
     val history: List<Content> get() = _history
 
-    private val systemContent: Content? = systemPrompt?.let {
-        content(role = "system") { text(it) }
-    }
+    private val systemContent: Content? = null
 
     fun shouldCompress(): Boolean {
         val totalChars = _history.sumOf { content -> 

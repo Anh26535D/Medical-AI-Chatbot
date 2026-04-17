@@ -36,7 +36,10 @@ class ChatRepositoryImpl(
     }
 
     private val generativeModel = Firebase.ai(backend = GenerativeBackend.googleAI())
-        .generativeModel(modelName)
+        .generativeModel(
+            modelName = modelName,
+            systemInstruction = content { text(MedicalChatManager.DEFAULT_SYSTEM_PROMPT) }
+        )
 
     override fun getMessages(threadId: String): Flow<PagingData<ChatMessage>> {
         return Pager(
@@ -109,11 +112,12 @@ class ChatRepositoryImpl(
             val currentSummary = thread?.summary
 
             // 3. Chuyển đổi history
+            // 3. Chuyển đổi history
             val historyContent = history.map { 
                 content(role = if (it.role == MessageRole.USER) "user" else "model") { text(it.content) }
             }
-            
-            val chatManager = MedicalChatManager(generativeModel, historyContent)
+
+            val chatManager = MedicalChatManager(generativeModel, historyContent.takeLast(12))
             
             // 4. Gửi tin nhắn với Location Context và Medical Summary
             val response = chatManager.sendMessage(
