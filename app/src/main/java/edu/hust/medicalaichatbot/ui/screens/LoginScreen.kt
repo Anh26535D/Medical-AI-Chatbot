@@ -60,90 +60,62 @@ fun LoginScreen(
             .verticalScroll(rememberScrollState()),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Header
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = "Đăng nhập",
-                fontSize = 18.sp,
-                color = TextGray,
-                fontWeight = FontWeight.Medium
-            )
-        }
-
-        Spacer(modifier = Modifier.height(20.dp))
+        Spacer(modifier = Modifier.height(12.dp))
 
         // Main Login Card
         Card(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 24.dp),
-            shape = RoundedCornerShape(24.dp),
+                .padding(horizontal = 16.dp),
+            shape = RoundedCornerShape(20.dp),
             colors = CardDefaults.cardColors(containerColor = Color.White),
-            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(24.dp),
+                    .padding(16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // Logo
-                Surface(
-                    modifier = Modifier.size(64.dp),
-                    shape = CircleShape,
-                    color = PrimaryBlue
+                // Compact Logo & Title
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(bottom = 8.dp)
                 ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Icon(
-                            imageVector = Icons.Default.Shield,
-                            contentDescription = null,
-                            tint = Color.White,
-                            modifier = Modifier.size(32.dp)
-                        )
+                    Surface(
+                        modifier = Modifier.size(32.dp),
+                        shape = CircleShape,
+                        color = PrimaryBlue
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = Icons.Default.Shield,
+                                contentDescription = null,
+                                tint = Color.White,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
                     }
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Text(
+                        text = "Sức khỏe Việt AI",
+                        color = PrimaryBlue,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold
+                    )
                 }
 
-                Spacer(modifier = Modifier.height(12.dp))
-
                 Text(
-                    text = "Sức khỏe Việt AI",
-                    color = PrimaryBlue,
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold
-                )
-
-                Spacer(modifier = Modifier.height(32.dp))
-
-                Text(
-                    text = "Chào mừng",
-                    fontSize = 24.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.Black
-                )
-
-                Text(
-                    text = "Đăng nhập để tiếp tục theo dõi sức khỏe",
-                    fontSize = 14.sp,
+                    text = "Đăng nhập để tiếp tục",
+                    fontSize = 13.sp,
                     color = TextGray,
-                    modifier = Modifier.padding(top = 8.dp)
+                    textAlign = TextAlign.Center
                 )
 
-                Spacer(modifier = Modifier.height(32.dp))
+                Spacer(modifier = Modifier.height(16.dp))
 
                 // Input Field
                 Column(modifier = Modifier.fillMaxWidth()) {
-                    Text(
-                        text = "Số điện thoại",
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = Color.Black,
-                        modifier = Modifier.padding(bottom = 8.dp)
-                    )
                     OutlinedTextField(
                         value = phoneNumber,
                         onValueChange = { 
@@ -151,7 +123,7 @@ fun LoginScreen(
                             if (authState is AuthState.Error) viewModel.resetState()
                         },
                         modifier = Modifier.fillMaxWidth(),
-                        placeholder = { Text("Nhập số điện thoại", color = Color.LightGray) },
+                        label = { Text("Số điện thoại") },
                         leadingIcon = {
                             Icon(
                                 Icons.Default.Phone,
@@ -160,10 +132,10 @@ fun LoginScreen(
                                 modifier = Modifier.size(20.dp)
                             )
                         },
-                        shape = RoundedCornerShape(32.dp),
+                        shape = RoundedCornerShape(16.dp),
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedContainerColor = Color(0xFFE9ECEF),
-                            unfocusedContainerColor = Color(0xFFE9ECEF),
+                            focusedContainerColor = Color(0xFFF8F9FA),
+                            unfocusedContainerColor = Color(0xFFF8F9FA),
                             focusedBorderColor = PrimaryBlue,
                             unfocusedBorderColor = Color.Transparent,
                         ),
@@ -171,15 +143,8 @@ fun LoginScreen(
                         singleLine = true
                     )
 
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(12.dp))
 
-                    Text(
-                        text = "Mật khẩu",
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = Color.Black,
-                        modifier = Modifier.padding(bottom = 8.dp)
-                    )
                     OutlinedTextField(
                         value = password,
                         onValueChange = { 
@@ -187,7 +152,7 @@ fun LoginScreen(
                             if (authState is AuthState.Error) viewModel.resetState()
                         },
                         modifier = Modifier.fillMaxWidth(),
-                        placeholder = { Text("Nhập mật khẩu", color = Color.LightGray) },
+                        label = { Text("Mật khẩu") },
                         leadingIcon = {
                             Icon(
                                 Icons.Default.Lock,
@@ -196,10 +161,10 @@ fun LoginScreen(
                                 modifier = Modifier.size(20.dp)
                             )
                         },
-                        shape = RoundedCornerShape(32.dp),
+                        shape = RoundedCornerShape(16.dp),
                         colors = OutlinedTextFieldDefaults.colors(
-                            focusedContainerColor = Color(0xFFE9ECEF),
-                            unfocusedContainerColor = Color(0xFFE9ECEF),
+                            focusedContainerColor = Color(0xFFF8F9FA),
+                            unfocusedContainerColor = Color(0xFFF8F9FA),
                             focusedBorderColor = PrimaryBlue,
                             unfocusedBorderColor = Color.Transparent,
                         ),
@@ -213,12 +178,12 @@ fun LoginScreen(
                             text = (authState as AuthState.Error).message,
                             color = Color.Red,
                             fontSize = 12.sp,
-                            modifier = Modifier.padding(top = 8.dp, start = 16.dp)
+                            modifier = Modifier.padding(top = 4.dp, start = 8.dp)
                         )
                     }
                 }
 
-                Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(20.dp))
 
                 // Action Buttons
                 Button(
@@ -227,41 +192,41 @@ fun LoginScreen(
                     },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(56.dp),
-                    shape = RoundedCornerShape(28.dp),
+                        .height(48.dp),
+                    shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue),
                     enabled = phoneNumber.isNotBlank() && password.isNotBlank() && authState !is AuthState.Loading
                 ) {
                     if (authState is AuthState.Loading) {
-                        CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
+                        CircularProgressIndicator(color = Color.White, modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
                     } else {
-                        Text("Đăng nhập", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                        Text("Đăng nhập", fontSize = 15.sp, fontWeight = FontWeight.Bold)
                     }
                 }
 
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(8.dp))
 
                 OutlinedButton(
                     onClick = onSkipLogin,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(56.dp),
-                    shape = RoundedCornerShape(28.dp),
+                        .height(48.dp),
+                    shape = RoundedCornerShape(12.dp),
                     border = ButtonDefaults.outlinedButtonBorder(enabled = true).copy(width = 1.dp, brush = androidx.compose.ui.graphics.SolidColor(Color(0xFFE9ECEF)))
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Default.Bolt, contentDescription = null, tint = PrimaryBlue, modifier = Modifier.size(20.dp))
-                        Spacer(modifier = Modifier.width(8.dp))
+                        Icon(Icons.Default.Bolt, contentDescription = null, tint = PrimaryBlue, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
                         Text(
                             "Dùng nhanh không cần đăng nhập",
                             color = PrimaryBlue,
-                            fontSize = 14.sp,
+                            fontSize = 13.sp,
                             fontWeight = FontWeight.Medium
                         )
                     }
                 }
 
-                Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(16.dp))
 
                 // Social Login Divider
                 Row(
@@ -270,30 +235,30 @@ fun LoginScreen(
                 ) {
                     HorizontalDivider(modifier = Modifier.weight(1f), color = Color(0xFFE9ECEF))
                     Text(
-                        text = "Hoặc đăng nhập bằng",
-                        modifier = Modifier.padding(horizontal = 16.dp),
+                        text = "Hoặc",
+                        modifier = Modifier.padding(horizontal = 12.dp),
                         fontSize = 12.sp,
                         color = TextGray
                     )
                     HorizontalDivider(modifier = Modifier.weight(1f), color = Color(0xFFE9ECEF))
                 }
 
-                Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(16.dp))
 
                 // Social Buttons
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     SocialButton(
                         text = "Google",
-                        icon = android.R.drawable.ic_menu_gallery, // Replace with real icon
+                        icon = android.R.drawable.ic_menu_gallery,
                         modifier = Modifier.weight(1f),
                         onClick = {}
                     )
                     SocialButton(
                         text = "Apple",
-                        icon = android.R.drawable.ic_menu_gallery, // Replace with real icon
+                        icon = android.R.drawable.ic_menu_gallery,
                         modifier = Modifier.weight(1f),
                         onClick = {}
                     )
@@ -301,7 +266,7 @@ fun LoginScreen(
             }
         }
 
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(16.dp))
 
         // Register Link
         Row(
@@ -309,38 +274,38 @@ fun LoginScreen(
             horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(text = "Bác chưa có tài khoản? ", color = TextGray, fontSize = 14.sp)
+            Text(text = "Bạn chưa có tài khoản? ", color = TextGray, fontSize = 14.sp)
             TextButton(onClick = onRegisterClick) {
                 Text(text = "Đăng ký ngay", color = PrimaryBlue, fontWeight = FontWeight.Bold, fontSize = 14.sp)
             }
         }
 
-        Spacer(modifier = Modifier.weight(1f))
+        Spacer(modifier = Modifier.height(8.dp))
 
         // Security Commitment Card
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(24.dp),
-            shape = RoundedCornerShape(20.dp),
-            color = LightBlue.copy(alpha = 0.5f)
+                .padding(horizontal = 20.dp, vertical = 4.dp),
+            shape = RoundedCornerShape(12.dp),
+            color = LightBlue.copy(alpha = 0.4f)
         ) {
             Row(
-                modifier = Modifier.padding(16.dp),
+                modifier = Modifier.padding(10.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Icon(
                     Icons.Default.Info,
                     contentDescription = null,
                     tint = PrimaryBlue,
-                    modifier = Modifier.size(24.dp)
+                    modifier = Modifier.size(16.dp)
                 )
-                Spacer(modifier = Modifier.width(12.dp))
+                Spacer(modifier = Modifier.width(10.dp))
                 Text(
-                    text = "Chúng tôi cam kết bảo mật tuyệt đối thông tin sức khỏe của bạn theo tiêu chuẩn y tế hiện hành.",
-                    fontSize = 12.sp,
+                    text = "Thông tin sức khỏe của bạn được bảo mật tuyệt đối.",
+                    fontSize = 10.sp,
                     color = PrimaryBlue,
-                    lineHeight = 18.sp
+                    lineHeight = 14.sp
                 )
             }
         }
@@ -356,8 +321,8 @@ fun SocialButton(
 ) {
     OutlinedButton(
         onClick = onClick,
-        modifier = modifier.height(50.dp),
-        shape = RoundedCornerShape(25.dp),
+        modifier = modifier.height(44.dp),
+        shape = RoundedCornerShape(12.dp),
         colors = ButtonDefaults.outlinedButtonColors(containerColor = Color.White),
         border = ButtonDefaults.outlinedButtonBorder(enabled = true).copy(width = 1.dp, brush = androidx.compose.ui.graphics.SolidColor(Color(0xFFF1F3F5)))
     ) {
@@ -365,11 +330,11 @@ fun SocialButton(
             Icon(
                 painter = painterResource(id = icon),
                 contentDescription = null,
-                modifier = Modifier.size(18.dp),
+                modifier = Modifier.size(16.dp),
                 tint = Color.Unspecified
             )
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(text = text, color = Color.Black, fontSize = 14.sp, fontWeight = FontWeight.Medium)
+            Spacer(modifier = Modifier.width(6.dp))
+            Text(text = text, color = Color.Black, fontSize = 13.sp, fontWeight = FontWeight.Medium)
         }
     }
 }

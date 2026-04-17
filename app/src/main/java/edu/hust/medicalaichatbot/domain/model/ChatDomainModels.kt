@@ -17,5 +17,6 @@ data class ChatThread(
     val id: String,
     val title: String,
     val lastUpdated: Long,
-    val modelName: String
+    val modelName: String,
+    val summary: String? = null
 )

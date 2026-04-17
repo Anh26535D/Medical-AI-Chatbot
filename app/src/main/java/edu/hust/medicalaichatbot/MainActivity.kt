@@ -14,6 +14,7 @@ import edu.hust.medicalaichatbot.data.local.AppDatabase
 import edu.hust.medicalaichatbot.data.repository.AuthRepository
 import edu.hust.medicalaichatbot.data.repository.ChatRepositoryImpl
 import edu.hust.medicalaichatbot.domain.usecase.chat.GetMessagesUseCase
+import edu.hust.medicalaichatbot.domain.usecase.chat.GetThreadsUseCase
 import edu.hust.medicalaichatbot.domain.usecase.chat.SendMessageUseCase
 import edu.hust.medicalaichatbot.ui.screens.HistoryScreen
 import edu.hust.medicalaichatbot.ui.screens.HomeScreen
@@ -24,6 +25,7 @@ import edu.hust.medicalaichatbot.ui.screens.SplashScreen
 import edu.hust.medicalaichatbot.ui.theme.MedicalAIChatbotTheme
 import edu.hust.medicalaichatbot.ui.viewmodel.AuthViewModel
 import edu.hust.medicalaichatbot.ui.viewmodel.ChatViewModel
+import edu.hust.medicalaichatbot.ui.viewmodel.HistoryViewModel
 import edu.hust.medicalaichatbot.utils.Constants
 
 class MainActivity : ComponentActivity() {
@@ -40,7 +42,12 @@ class MainActivity : ComponentActivity() {
                     factory = AuthViewModel.Factory(authRepository)
                 )
 
-                val chatRepository = ChatRepositoryImpl(database.chatDao(), Constants.DEFAULT_MODEL)
+                val locationService = edu.hust.medicalaichatbot.data.service.LocationService(context)
+                val chatRepository = ChatRepositoryImpl(
+                    chatDao = database.chatDao(),
+                    modelName = Constants.DEFAULT_MODEL,
+                    locationService = locationService
+                )
                 val getMessagesUseCase = GetMessagesUseCase(chatRepository)
                 val sendMessageUseCase = SendMessageUseCase(chatRepository)
                 
@@ -48,14 +55,23 @@ class MainActivity : ComponentActivity() {
                     factory = ChatViewModel.Factory(getMessagesUseCase, sendMessageUseCase)
                 )
 
-                MedicalApp(authViewModel, chatViewModel)
+                val getThreadsUseCase = GetThreadsUseCase(chatRepository)
+                val historyViewModel: HistoryViewModel = viewModel(
+                    factory = HistoryViewModel.Factory(getThreadsUseCase)
+                )
+
+                MedicalApp(authViewModel, chatViewModel, historyViewModel)
             }
         }
     }
 }
 
 @Composable
-fun MedicalApp(authViewModel: AuthViewModel, chatViewModel: ChatViewModel) {
+fun MedicalApp(
+    authViewModel: AuthViewModel, 
+    chatViewModel: ChatViewModel,
+    historyViewModel: HistoryViewModel
+) {
     val navController = rememberNavController()
     
     NavHost(navController = navController, startDestination = "splash") {
@@ -101,10 +117,15 @@ fun MedicalApp(authViewModel: AuthViewModel, chatViewModel: ChatViewModel) {
         }
         composable("history") {
             HistoryScreen(
+                viewModel = historyViewModel,
                 onHomeClick = { 
                     navController.navigate("home") {
                         popUpTo("home") { inclusive = true }
                     }
+                },
+                onThreadClick = { threadId ->
+                    chatViewModel.setCurrentThread(threadId)
+                    navController.navigate("home")
                 }
             )
         }

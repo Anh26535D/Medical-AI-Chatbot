@@ -1,5 +1,7 @@
 package edu.hust.medicalaichatbot.ui.screens
 
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.animation.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -19,6 +21,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -241,30 +244,47 @@ fun AiMessage(text: String, timestamp: Long) {
 
 @Composable
 fun TriageActionButtons(tag: String) {
+    val context = LocalContext.current
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         when (tag) {
             "RED" -> {
                 Button(
-                    onClick = { /* Gọi 115 */ },
+                    onClick = {
+                        val intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:115"))
+                        context.startActivity(intent)
+                    },
                     modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.buttonColors(containerColor = Color.Red),
                     shape = RoundedCornerShape(12.dp)
                 ) {
                     Icon(Icons.Default.Phone, null)
                     Spacer(Modifier.width(8.dp))
-                    Text("GỌI CẤP CỨU 115")
+                    Text("GỌI CẤP CỨU 115", fontWeight = FontWeight.Bold)
                 }
                 OutlinedButton(
-                    onClick = { /* Tìm BV gần nhất */ },
+                    onClick = {
+                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse("geo:0,0?q=bệnh viện gần nhất"))
+                        intent.setPackage("com.google.android.apps.maps")
+                        context.startActivity(intent)
+                    },
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(12.dp)
                 ) {
-                    Text("Bệnh viện gần nhất")
+                    Icon(Icons.Default.Map, null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text("Tìm bệnh viện gần đây")
                 }
             }
             "ORANGE" -> {
                 Button(
-                    onClick = { /* Đặt lịch */ },
+                    onClick = {
+                        val intent = Intent(Intent.ACTION_INSERT).apply {
+                            data = android.provider.CalendarContract.Events.CONTENT_URI
+                            putExtra(android.provider.CalendarContract.Events.TITLE, "Khám bệnh (Hẹn từ AI Chatbot)")
+                            putExtra(android.provider.CalendarContract.Events.DESCRIPTION, "Tư vấn sức khỏe định kỳ")
+                        }
+                        context.startActivity(intent)
+                    },
                     modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue),
                     shape = RoundedCornerShape(12.dp)
@@ -276,14 +296,18 @@ fun TriageActionButtons(tag: String) {
             }
             "YELLOW" -> {
                 Button(
-                    onClick = { /* Chat Dược sĩ */ },
+                    onClick = {
+                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse("geo:0,0?q=nhà thuốc gần nhất"))
+                        intent.setPackage("com.google.android.apps.maps")
+                        context.startActivity(intent)
+                    },
                     modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.buttonColors(containerColor = SuccessGreen),
                     shape = RoundedCornerShape(12.dp)
                 ) {
-                    Icon(Icons.Default.Chat, null)
+                    Icon(Icons.Default.LocalPharmacy, null)
                     Spacer(Modifier.width(8.dp))
-                    Text("Kết nối Dược sĩ ngay")
+                    Text("Tìm nhà thuốc gần nhất")
                 }
             }
         }
