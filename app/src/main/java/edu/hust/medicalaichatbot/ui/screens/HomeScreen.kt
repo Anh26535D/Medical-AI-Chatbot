@@ -1,10 +1,10 @@
 package edu.hust.medicalaichatbot.ui.screens
 
+import androidx.compose.animation.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -46,7 +46,6 @@ fun HomeScreen(
     val messages = chatViewModel.messages.collectAsLazyPagingItems()
     val isLoading by chatViewModel.isLoading.collectAsState()
     
-    // Ensure we have a thread set (for development/testing if not set by navigation)
     LaunchedEffect(Unit) {
         if (chatViewModel.currentThreadId.value == null) {
             chatViewModel.setCurrentThread("default_thread")
@@ -68,7 +67,6 @@ fun HomeScreen(
                 isLoading = isLoading,
                 modifier = Modifier.weight(1f)
             )
-            QuickActionsSection()
             MessageInput(onSendMessage = { chatViewModel.sendMessage(it) })
         }
     }
@@ -76,44 +74,53 @@ fun HomeScreen(
 
 @Composable
 fun HomeTopBar() {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .statusBarsPadding()
-            .padding(16.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
+    Surface(
+        shadowElevation = 4.dp,
+        color = Color.White
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Surface(
-                modifier = Modifier.size(40.dp),
-                shape = RoundedCornerShape(8.dp),
-                color = PrimaryBlue
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(
-                        imageVector = Icons.Default.Shield,
-                        contentDescription = null,
-                        tint = Color.White,
-                        modifier = Modifier.size(24.dp)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .statusBarsPadding()
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Surface(
+                    modifier = Modifier.size(44.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    color = PrimaryBlue
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(Icons.Default.Shield, null, tint = Color.White, modifier = Modifier.size(26.dp))
+                    }
+                }
+                Spacer(modifier = Modifier.width(12.dp))
+                Column {
+                    Text(
+                        text = stringResource(R.string.app_title),
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = PrimaryBlue
+                    )
+                    Text(
+                        text = "Trợ lý sức khỏe AI",
+                        fontSize = 12.sp,
+                        color = TextGray
                     )
                 }
             }
-            Spacer(modifier = Modifier.width(12.dp))
-            Text(
-                text = stringResource(R.string.app_title),
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Bold,
-                color = PrimaryBlue
-            )
-        }
-        
-        Surface(
-            modifier = Modifier.size(40.dp),
-            shape = CircleShape,
-            color = Color.LightGray
-        ) {
-            Icon(Icons.Default.Person, contentDescription = null, tint = Color.White)
+
+            Surface(
+                modifier = Modifier.size(40.dp),
+                shape = CircleShape,
+                color = SurfaceGray
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(Icons.Default.Person, null, tint = PrimaryBlue)
+                }
+            }
         }
     }
 }
@@ -134,19 +141,20 @@ fun ChatSection(
 
     LazyColumn(
         state = listState,
-        modifier = modifier.padding(horizontal = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        modifier = modifier.fillMaxWidth(),
+        contentPadding = PaddingValues(16.dp),
+        verticalArrangement = Arrangement.spacedBy(20.dp)
     ) {
         item {
-            Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+            Box(modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp), contentAlignment = Alignment.Center) {
                 val dateString = SimpleDateFormat("dd MMMM", Locale.forLanguageTag("vi")).format(Date())
                 Text(
                     text = stringResource(R.string.today_label, dateString),
                     fontSize = 12.sp,
                     color = TextGray,
                     modifier = Modifier
-                        .background(SurfaceGray, RoundedCornerShape(12.dp))
-                        .padding(horizontal = 12.dp, vertical = 4.dp)
+                        .background(Color.White, RoundedCornerShape(12.dp))
+                        .padding(horizontal = 16.dp, vertical = 6.dp)
                 )
             }
         }
@@ -166,72 +174,64 @@ fun ChatSection(
             }
         }
 
-        if (messages.itemCount == 1) {
-            val firstMessage = messages[0]
-            if (firstMessage != null && (firstMessage.role == MessageRole.ASSISTANT || firstMessage.role == MessageRole.ERROR)) {
-                item {
-                    UserSelectionSection()
-                }
-            }
-        }
-
         if (isLoading) {
             item {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Surface(
-                        modifier = Modifier.size(32.dp),
-                        shape = CircleShape,
-                        color = SurfaceGray
-                    ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Icon(Icons.Default.SmartToy, contentDescription = null, modifier = Modifier.size(16.dp), tint = TextGray)
-                        }
-                    }
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = stringResource(R.string.ai_analyzing),
-                        fontSize = 12.sp,
-                        color = TextGray,
-                        modifier = Modifier
-                            .background(SurfaceGray, RoundedCornerShape(16.dp))
-                            .padding(horizontal = 12.dp, vertical = 6.dp)
-                    )
-                }
+                AiLoadingIndicator()
             }
         }
     }
 }
 
 @Composable
-fun AiMessage(text: String, timestamp: Long = System.currentTimeMillis()) {
-    val timeFormat = SimpleDateFormat("HH:mm a", Locale.getDefault())
-    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Start) {
+fun AiMessage(text: String, timestamp: Long) {
+    // Tách Tag Triage nếu có
+    val triageTag = remember(text) {
+        when {
+            text.contains("[TRIAGE: RED]") -> "RED"
+            text.contains("[TRIAGE: ORANGE]") -> "ORANGE"
+            text.contains("[TRIAGE: YELLOW]") -> "YELLOW"
+            text.contains("[TRIAGE: GREEN]") -> "GREEN"
+            else -> null
+        }
+    }
+    val cleanText = text.replace(Regex("\\[TRIAGE:.*?\\]"), "").trim()
+
+    val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
+
+    Row(modifier = Modifier.fillMaxWidth().padding(end = 40.dp), horizontalArrangement = Arrangement.Start) {
         Surface(
             modifier = Modifier.size(36.dp),
             shape = CircleShape,
             color = PrimaryBlue
         ) {
             Box(contentAlignment = Alignment.Center) {
-                Icon(Icons.Default.SmartToy, contentDescription = null, tint = Color.White, modifier = Modifier.size(20.dp))
+                Icon(Icons.Default.SmartToy, null, tint = Color.White, modifier = Modifier.size(20.dp))
             }
         }
-        Spacer(modifier = Modifier.width(8.dp))
+        Spacer(modifier = Modifier.width(12.dp))
         Column {
             Surface(
                 shape = RoundedCornerShape(topStart = 0.dp, topEnd = 20.dp, bottomStart = 20.dp, bottomEnd = 20.dp),
                 color = Color.White,
-                tonalElevation = 1.dp
+                shadowElevation = 1.dp
             ) {
-                Text(
-                    text = text,
-                    modifier = Modifier.padding(12.dp),
-                    fontSize = 14.sp,
-                    lineHeight = 20.sp
-                )
+                Column(modifier = Modifier.padding(14.dp)) {
+                    Text(
+                        text = cleanText,
+                        fontSize = 15.sp,
+                        lineHeight = 22.sp,
+                        color = Color.Black
+                    )
+
+                    if (triageTag != null) {
+                        Spacer(modifier = Modifier.height(12.dp))
+                        TriageActionButtons(triageTag)
+                    }
+                }
             }
             Text(
                 text = timeFormat.format(Date(timestamp)),
-                fontSize = 10.sp,
+                fontSize = 11.sp,
                 color = TextGray,
                 modifier = Modifier.padding(top = 4.dp, start = 4.dp)
             )
@@ -240,131 +240,100 @@ fun AiMessage(text: String, timestamp: Long = System.currentTimeMillis()) {
 }
 
 @Composable
-fun UserMessage(text: String, timestamp: Long = System.currentTimeMillis()) {
-    val timeFormat = SimpleDateFormat("HH:mm a", Locale.getDefault())
-    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+fun TriageActionButtons(tag: String) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        when (tag) {
+            "RED" -> {
+                Button(
+                    onClick = { /* Gọi 115 */ },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.Red),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Icon(Icons.Default.Phone, null)
+                    Spacer(Modifier.width(8.dp))
+                    Text("GỌI CẤP CỨU 115")
+                }
+                OutlinedButton(
+                    onClick = { /* Tìm BV gần nhất */ },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Text("Bệnh viện gần nhất")
+                }
+            }
+            "ORANGE" -> {
+                Button(
+                    onClick = { /* Đặt lịch */ },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Icon(Icons.Default.CalendarMonth, null)
+                    Spacer(Modifier.width(8.dp))
+                    Text("Đặt lịch khám bác sĩ")
+                }
+            }
+            "YELLOW" -> {
+                Button(
+                    onClick = { /* Chat Dược sĩ */ },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(containerColor = SuccessGreen),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Icon(Icons.Default.Chat, null)
+                    Spacer(Modifier.width(8.dp))
+                    Text("Kết nối Dược sĩ ngay")
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun UserMessage(text: String, timestamp: Long) {
+    val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
+    Row(modifier = Modifier.fillMaxWidth().padding(start = 60.dp), horizontalArrangement = Arrangement.End) {
         Column(horizontalAlignment = Alignment.End) {
             Surface(
-                shape = RoundedCornerShape(topStart = 20.dp, topEnd = 0.dp, bottomStart = 20.dp, bottomEnd = 20.dp),
+                shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp, bottomStart = 20.dp, bottomEnd = 0.dp),
                 color = PrimaryBlue
             ) {
                 Text(
                     text = text,
-                    modifier = Modifier.padding(12.dp),
-                    fontSize = 14.sp,
+                    modifier = Modifier.padding(14.dp),
+                    fontSize = 15.sp,
                     color = Color.White,
-                    lineHeight = 20.sp
+                    lineHeight = 22.sp
                 )
             }
             Text(
                 text = timeFormat.format(Date(timestamp)),
-                fontSize = 10.sp,
+                fontSize = 11.sp,
                 color = TextGray,
                 modifier = Modifier.padding(top = 4.dp, end = 4.dp)
             )
         }
-        Spacer(modifier = Modifier.width(8.dp))
-        Surface(
-            modifier = Modifier.size(36.dp),
-            shape = CircleShape,
-            color = UserAvatarGreen
-        ) {
+    }
+}
+
+@Composable
+fun AiLoadingIndicator() {
+    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 8.dp)) {
+        Surface(modifier = Modifier.size(32.dp), shape = CircleShape, color = SurfaceGray) {
             Box(contentAlignment = Alignment.Center) {
-                Icon(Icons.Default.Person, contentDescription = null, tint = Color.White, modifier = Modifier.size(20.dp))
+                Icon(Icons.Default.SmartToy, null, modifier = Modifier.size(16.dp), tint = TextGray)
             }
         }
-    }
-}
-
-@Composable
-fun UserSelectionSection() {
-    Column(modifier = Modifier.padding(start = 44.dp)) {
-        Text(text = stringResource(R.string.ask_for_whom), fontSize = 12.sp, fontWeight = FontWeight.Medium, color = Color.Black)
-        Spacer(modifier = Modifier.height(8.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            SelectionAvatar(stringResource(R.string.label_me), true)
-            SelectionAvatar(stringResource(R.string.label_dad), false)
-            SelectionAvatar(stringResource(R.string.label_mom), false)
-            SelectionAvatar(stringResource(R.string.label_baby), false)
-        }
-    }
-}
-
-@Composable
-fun SelectionAvatar(label: String, isSelected: Boolean) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Surface(
+        Spacer(modifier = Modifier.width(12.dp))
+        Text(
+            text = "AI đang phân tích triệu chứng...",
+            fontSize = 13.sp,
+            color = TextGray,
             modifier = Modifier
-                .size(48.dp)
-                .border(
-                    width = if (isSelected) 2.dp else 0.dp,
-                    color = if (isSelected) PrimaryBlue else Color.Transparent,
-                    shape = CircleShape
-                ),
-            shape = CircleShape,
-            color = if (isSelected) Color.White else SurfaceGray
-        ) {
-            Box(contentAlignment = Alignment.Center) {
-                Icon(
-                    imageVector = if (label == stringResource(R.string.label_me)) Icons.Default.Person else Icons.Outlined.PersonOutline,
-                    contentDescription = null,
-                    tint = if (isSelected) PrimaryBlue else TextGray
-                )
-            }
-        }
-        Spacer(modifier = Modifier.height(4.dp))
-        Text(
-            text = label,
-            fontSize = 10.sp,
-            color = if (isSelected) PrimaryBlue else TextGray,
-            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                .background(SurfaceGray, RoundedCornerShape(16.dp))
+                .padding(horizontal = 16.dp, vertical = 8.dp)
         )
-    }
-}
-
-@Composable
-fun QuickActionsSection() {
-    Column(modifier = Modifier.padding(16.dp)) {
-        Text(
-            text = stringResource(R.string.quick_actions_title),
-            fontSize = 16.sp,
-            fontWeight = FontWeight.Bold,
-            color = PrimaryBlue
-        )
-        Spacer(modifier = Modifier.height(12.dp))
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            QuickActionCard(stringResource(R.string.action_add_symptom), Icons.Default.AddCircleOutline, LightBlue, PrimaryBlue, Modifier.weight(1f))
-            QuickActionCard(stringResource(R.string.action_emergency), Icons.Default.Emergency, EmergencyRed, Color.Red, Modifier.weight(1f))
-        }
-        Spacer(modifier = Modifier.height(12.dp))
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            QuickActionCard(stringResource(R.string.action_ask_pharmacist), Icons.Default.MedicalServices, SurfaceGray, TextGray, Modifier.weight(1f))
-            QuickActionCard(stringResource(R.string.action_see_doctor), Icons.Default.MedicalInformation, SuccessGreen, Color(0xFF4CAF50), Modifier.weight(1f))
-        }
-    }
-}
-
-@Composable
-fun QuickActionCard(label: String, icon: ImageVector, bgColor: Color, iconColor: Color, modifier: Modifier = Modifier) {
-    Surface(
-        modifier = modifier.height(80.dp),
-        shape = RoundedCornerShape(16.dp),
-        color = Color.White,
-        shadowElevation = 2.dp
-    ) {
-        Column(
-            modifier = Modifier.fillMaxSize(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            Surface(shape = CircleShape, color = bgColor, modifier = Modifier.size(32.dp)) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(icon, contentDescription = null, tint = iconColor, modifier = Modifier.size(20.dp))
-                }
-            }
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(text = label, fontSize = 12.sp, fontWeight = FontWeight.Medium, textAlign = TextAlign.Center)
-        }
     }
 }
 
@@ -373,44 +342,36 @@ fun MessageInput(onSendMessage: (String) -> Unit) {
     var text by remember { mutableStateOf("") }
     
     Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(16.dp),
-        shape = RoundedCornerShape(30.dp),
+        modifier = Modifier.fillMaxWidth(),
         color = Color.White,
-        shadowElevation = 4.dp
+        shadowElevation = 8.dp
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+            modifier = Modifier.padding(16.dp).navigationBarsPadding(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Icon(Icons.Default.AttachFile, contentDescription = null, tint = TextGray)
-            Spacer(modifier = Modifier.width(8.dp))
-            
-            TextField(
-                value = text,
-                onValueChange = { text = it },
-                placeholder = {
-                    Text(
-                        text = stringResource(R.string.input_placeholder),
-                        color = Color.LightGray,
-                        fontSize = 14.sp
-                    )
-                },
+            Surface(
                 modifier = Modifier.weight(1f),
-                colors = TextFieldDefaults.colors(
-                    focusedContainerColor = Color.Transparent,
-                    unfocusedContainerColor = Color.Transparent,
-                    disabledContainerColor = Color.Transparent,
-                    focusedIndicatorColor = Color.Transparent,
-                    unfocusedIndicatorColor = Color.Transparent,
-                ),
-                singleLine = false,
-                maxLines = 4
-            )
+                shape = RoundedCornerShape(24.dp),
+                color = SurfaceGray
+            ) {
+                TextField(
+                    value = text,
+                    onValueChange = { text = it },
+                    placeholder = { Text("Mô tả triệu chứng của bạn...", fontSize = 14.sp) },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = Color.Transparent,
+                        unfocusedContainerColor = Color.Transparent,
+                        focusedIndicatorColor = Color.Transparent,
+                        unfocusedIndicatorColor = Color.Transparent,
+                    ),
+                    maxLines = 5
+                )
+            }
             
-            Icon(Icons.Default.Mic, contentDescription = null, tint = TextGray)
             Spacer(modifier = Modifier.width(12.dp))
+
             IconButton(
                 onClick = {
                     if (text.isNotBlank()) {
@@ -418,15 +379,16 @@ fun MessageInput(onSendMessage: (String) -> Unit) {
                         text = ""
                     }
                 },
-                modifier = Modifier.size(40.dp),
+                modifier = Modifier.size(48.dp),
                 enabled = text.isNotBlank()
             ) {
                 Surface(
                     shape = CircleShape,
-                    color = if (text.isNotBlank()) PrimaryBlue else Color.LightGray
+                    color = if (text.isNotBlank()) PrimaryBlue else Color.LightGray,
+                    modifier = Modifier.fillMaxSize()
                 ) {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Icon(Icons.AutoMirrored.Filled.Send, contentDescription = null, tint = Color.White, modifier = Modifier.size(20.dp))
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(Icons.AutoMirrored.Filled.Send, null, tint = Color.White, modifier = Modifier.size(24.dp))
                     }
                 }
             }
@@ -435,44 +397,25 @@ fun MessageInput(onSendMessage: (String) -> Unit) {
 }
 
 @Composable
-fun HomeBottomNavigation(onHistoryClick: () -> Unit = {}) {
-    NavigationBar(
-        containerColor = Color.White,
-        tonalElevation = 8.dp
-    ) {
+fun HomeBottomNavigation(onHistoryClick: () -> Unit) {
+    NavigationBar(containerColor = Color.White, tonalElevation = 0.dp) {
         NavigationBarItem(
-            icon = { Icon(Icons.Default.Home, contentDescription = null) },
-            label = { Text(stringResource(R.string.nav_home)) },
+            icon = { Icon(Icons.Default.ChatBubble, null) },
+            label = { Text("Tư vấn") },
             selected = true,
-            onClick = {},
-            colors = NavigationBarItemDefaults.colors(
-                selectedIconColor = PrimaryBlue,
-                selectedTextColor = PrimaryBlue,
-                unselectedIconColor = TextGray,
-                unselectedTextColor = TextGray,
-                indicatorColor = LightBlue
-            )
+            onClick = {}
         )
         NavigationBarItem(
-            icon = { Icon(Icons.Default.History, contentDescription = null) },
-            label = { Text(stringResource(R.string.nav_history)) },
+            icon = { Icon(Icons.Default.History, null) },
+            label = { Text("Bệnh án") },
             selected = false,
-            onClick = onHistoryClick,
-            colors = NavigationBarItemDefaults.colors(unselectedIconColor = TextGray, unselectedTextColor = TextGray)
+            onClick = onHistoryClick
         )
         NavigationBarItem(
-            icon = { Icon(Icons.Outlined.PersonOutline, contentDescription = null) },
-            label = { Text(stringResource(R.string.nav_profile)) },
+            icon = { Icon(Icons.Default.Settings, null) },
+            label = { Text("Cài đặt") },
             selected = false,
-            onClick = {},
-            colors = NavigationBarItemDefaults.colors(unselectedIconColor = TextGray, unselectedTextColor = TextGray)
-        )
-        NavigationBarItem(
-            icon = { Icon(Icons.AutoMirrored.Filled.HelpOutline, contentDescription = null) },
-            label = { Text(stringResource(R.string.nav_help)) },
-            selected = false,
-            onClick = {},
-            colors = NavigationBarItemDefaults.colors(unselectedIconColor = TextGray, unselectedTextColor = TextGray)
+            onClick = {}
         )
     }
 }
