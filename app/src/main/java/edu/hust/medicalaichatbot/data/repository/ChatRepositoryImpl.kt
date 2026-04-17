@@ -12,19 +12,28 @@ import com.google.firebase.ai.type.content
 import edu.hust.medicalaichatbot.data.local.dao.ChatDao
 import edu.hust.medicalaichatbot.data.mapper.toDomain
 import edu.hust.medicalaichatbot.data.mapper.toEntity
+import edu.hust.medicalaichatbot.data.service.LocationService
+import edu.hust.medicalaichatbot.data.service.MedicalPlaceSearcher
 import edu.hust.medicalaichatbot.domain.model.ChatMessage
 import edu.hust.medicalaichatbot.domain.model.ChatThread
+import edu.hust.medicalaichatbot.domain.model.MessageRole
 import edu.hust.medicalaichatbot.domain.repository.ChatRepository
 import edu.hust.medicalaichatbot.utils.Def
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.withContext
 
 class ChatRepositoryImpl(
     private val chatDao: ChatDao,
-    private val modelName: String
+    private val modelName: String,
+    private val locationService: LocationService? = null,
+    private val placeSearcher: MedicalPlaceSearcher = MedicalPlaceSearcher()
 ) : ChatRepository {
 
-    private val TAG = Def.tagOf("Chat")
+    companion object {
+        private val TAG = Def.tagOf("ChatRepo")
+    }
 
     private val generativeModel = Firebase.ai(backend = GenerativeBackend.googleAI())
         .generativeModel(modelName)
@@ -51,11 +60,10 @@ class ChatRepositoryImpl(
     private suspend fun ensureThreadExists(threadId: String) {
         val existingThread = chatDao.getThreadById(threadId)
         if (existingThread == null) {
-            Log.d(TAG, "ensureThreadExists: Thread $threadId not found. Creating it...")
             chatDao.insertThread(
                 edu.hust.medicalaichatbot.data.local.entity.ChatThread(
                     threadId = threadId,
-                    title = "New Chat",
+                    title = "Cuộc trò chuyện mới",
                     modelName = modelName,
                     lastUpdated = System.currentTimeMillis()
                 )
@@ -64,14 +72,11 @@ class ChatRepositoryImpl(
     }
 
     override suspend fun sendMessage(message: ChatMessage): Result<Unit> {
-        Log.d(TAG, "sendMessage: content='${message.content}', threadId=${message.threadId}")
         return try {
             ensureThreadExists(message.threadId)
             chatDao.insertMessageAndUpdateThread(message.toEntity())
-            Log.d(TAG, "sendMessage: Success")
             Result.success(Unit)
         } catch (e: Exception) {
-            Log.e(TAG, "sendMessage: Failed", e)
             Result.failure(e)
         }
     }
@@ -84,29 +89,62 @@ class ChatRepositoryImpl(
         chatDao.deleteThread(threadId)
     }
 
-    override suspend fun getAiResponse(prompt: String, history: List<ChatMessage>): Result<String> {
-        Log.d(TAG, "getAiResponse: prompt='$prompt', historySize=${history.size}")
-        return try {
+    override suspend fun getAiResponse(prompt: String, history: List<ChatMessage>): Result<String> = withContext(Dispatchers.IO) {
+        val threadId = if (history.isNotEmpty()) history.first().threadId else "default_thread"
+        
+        try {
+            // 1. Lấy vị trí và tìm địa điểm gần nhất (nếu có yêu cầu hoặc mặc định)
+            var nearbyPlacesString: String? = null
+            locationService?.getCurrentLocation()?.let { location ->
+                val places = placeSearcher.findNearbyPlaces(location.latitude, location.longitude)
+                if (places.isNotEmpty()) {
+                    nearbyPlacesString = places.joinToString("\n") { 
+                        "- ${it.name} (${String.format("%.1f", calculateDist(location.latitude, location.longitude, it.lat, it.lon))} km) - ${it.address}"
+                    }
+                }
+            }
+
+            // 2. Lấy thông tin thread và summary
+            val thread = chatDao.getThreadById(threadId)
+            val currentSummary = thread?.summary
+
+            // 3. Chuyển đổi history
             val historyContent = history.map { 
-                content(role = if (it.role.name == "USER") "user" else "model") { text(it.content) }
-            }
-            Log.d(TAG, "getAiResponse: Starting chat session with model '$modelName'...")
-            val chatSession = generativeModel.startChat(history = historyContent)
-            
-            Log.d(TAG, "getAiResponse: Sending message to Gemini...")
-            val response = chatSession.sendMessage(prompt)
-            
-            val responseText = response.text
-            Log.i(TAG, "getAiResponse: Received response: '$responseText'")
-            
-            if (responseText == null) {
-                Log.w(TAG, "getAiResponse: Response text is NULL")
+                content(role = if (it.role == MessageRole.USER) "user" else "model") { text(it.content) }
             }
             
-            Result.success(responseText ?: "No response from AI")
+            val chatManager = MedicalChatManager(generativeModel, historyContent)
+            
+            // 4. Gửi tin nhắn với Location Context và Medical Summary
+            val response = chatManager.sendMessage(
+                prompt = prompt, 
+                currentSummary = currentSummary,
+                nearbyPlaces = nearbyPlacesString
+            )
+            val responseText = response.text ?: "Xin lỗi, tôi không thể xử lý yêu cầu lúc này."
+
+            // 5. Nén ngữ cảnh tự động
+            if (chatManager.shouldCompress()) {
+                chatManager.requestMedicalSummary()?.let { newSummary ->
+                    chatDao.updateThreadSummary(threadId, newSummary)
+                }
+            }
+            
+            Result.success(responseText)
         } catch (e: Exception) {
-            Log.e(TAG, "getAiResponse: Error calling Gemini API", e)
+            Log.e(TAG, "getAiResponse Error", e)
             Result.failure(e)
         }
+    }
+
+    private fun calculateDist(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double {
+        val r = 6371.0
+        val dLat = Math.toRadians(lat2 - lat1)
+        val dLon = Math.toRadians(lon2 - lon1)
+        val a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2)) *
+                Math.sin(dLon / 2) * Math.sin(dLon / 2)
+        val c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+        return r * c
     }
 }

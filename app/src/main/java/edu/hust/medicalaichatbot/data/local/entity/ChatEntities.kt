@@ -7,7 +7,8 @@ data class ChatThread(
     @PrimaryKey val threadId: String,
     val title: String,
     val lastUpdated: Long,
-    val modelName: String
+    val modelName: String,
+    val summary: String? = null // Cột mới để lưu tóm tắt bệnh án
 )
 
 @Entity(
