@@ -1,3 +1,6 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -20,24 +23,71 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_21
+        targetCompatibility = JavaVersion.VERSION_21
+    }
+
+    kotlin {
+        compilerOptions {
+            jvmTarget.set(JvmTarget.JVM_21)
+        }
+    }
+
+    buildFeatures {
+        compose = true
+        buildConfig = true
+    }
+
     buildTypes {
+        debug {
+            val properties = Properties()
+            val propertiesFile = project.rootProject.file("local.properties")
+            if (propertiesFile.exists()) {
+                val input = propertiesFile.inputStream()
+                properties.load(input)
+                input.close()
+            }
+
+            fun getProp(key: String, envName: String, default: String = ""): String {
+                val value = properties.getProperty(key) ?: System.getenv(envName) ?: default
+                return "\"${value.replace("\"", "\\\"").replace("\n", "\\n")}\""
+            }
+
+            buildConfigField("String", "SYSTEM_PROMPT", getProp("AI_SYSTEM_PROMPT", "AI_SYSTEM_PROMPT"))
+            buildConfigField("String", "SUMMARY_PROMPT", getProp("AI_SUMMARY_PROMPT", "AI_SUMMARY_PROMPT"))
+            buildConfigField("String", "SYMPTOM_CACHE_PROMPT", getProp("AI_SYMPTOM_CACHE_PROMPT", "AI_SYMPTOM_CACHE_PROMPT"))
+            buildConfigField("String", "CONTEXT_LOCATION", getProp("AI_CONTEXT_LOCATION", "AI_CONTEXT_LOCATION", "Dưới đây là danh sách các cơ sở y tế/nhà thuốc gần vị trí của tôi nhất: %s"))
+            buildConfigField("String", "CONTEXT_SYMPTOMS", getProp("AI_CONTEXT_SYMPTOMS", "AI_CONTEXT_SYMPTOMS", "Các thông tin triệu chứng đã thu thập được: %s. KHÔNG hỏi lại những thông tin này nếu đã rõ ràng."))
+            buildConfigField("String", "CONTEXT_SUMMARY", getProp("AI_CONTEXT_SUMMARY", "AI_CONTEXT_SUMMARY", "Tóm tắt bệnh sử trước đó: %s"))
+        }
         release {
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            
+            val properties = Properties()
+            val propertiesFile = project.rootProject.file("local.properties")
+            if (propertiesFile.exists()) {
+                val input = propertiesFile.inputStream()
+                properties.load(input)
+                input.close()
+            }
+
+            fun getProp(key: String, envName: String, default: String = ""): String {
+                val value = properties.getProperty(key) ?: System.getenv(envName) ?: default
+                return "\"${value.replace("\"", "\\\"").replace("\n", "\\n")}\""
+            }
+
+            buildConfigField("String", "SYSTEM_PROMPT", getProp("AI_SYSTEM_PROMPT", "AI_SYSTEM_PROMPT"))
+            buildConfigField("String", "SUMMARY_PROMPT", getProp("AI_SUMMARY_PROMPT", "AI_SUMMARY_PROMPT"))
+            buildConfigField("String", "SYMPTOM_CACHE_PROMPT", getProp("AI_SYMPTOM_CACHE_PROMPT", "AI_SYMPTOM_CACHE_PROMPT"))
+            buildConfigField("String", "CONTEXT_LOCATION", getProp("AI_CONTEXT_LOCATION", "AI_CONTEXT_LOCATION"))
+            buildConfigField("String", "CONTEXT_SYMPTOMS", getProp("AI_CONTEXT_SYMPTOMS", "AI_CONTEXT_SYMPTOMS"))
+            buildConfigField("String", "CONTEXT_SUMMARY", getProp("AI_CONTEXT_SUMMARY", "AI_CONTEXT_SUMMARY"))
         }
-    }
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
-    }
-    kotlinOptions {
-        jvmTarget = "17"
-    }
-    buildFeatures {
-        compose = true
     }
 }
 
