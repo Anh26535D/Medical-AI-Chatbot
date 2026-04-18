@@ -9,6 +9,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.HelpOutline
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
@@ -27,12 +28,25 @@ import edu.hust.medicalaichatbot.ui.theme.SurfaceGray
 import edu.hust.medicalaichatbot.ui.theme.TextGray
 import edu.hust.medicalaichatbot.ui.theme.SuccessGreen
 
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.lifecycle.viewmodel.compose.viewModel
+import edu.hust.medicalaichatbot.domain.model.UserProfile
+import edu.hust.medicalaichatbot.ui.viewmodel.ProfileViewModel
+
 @Composable
 fun ProfileScreen(
     onHomeClick: () -> Unit,
     onHistoryClick: () -> Unit,
-    onHelpClick: () -> Unit
+    onHelpClick: () -> Unit,
+    profileViewModel: ProfileViewModel = viewModel()
 ) {
+    val userProfile by profileViewModel.userProfile.collectAsState()
+    var isEditing by remember { mutableStateOf(false) }
+
     Scaffold(
         topBar = { ProfileTopBar() },
         bottomBar = { ProfileBottomNavigation(onHomeClick, onHistoryClick, onHelpClick) },
@@ -69,8 +83,21 @@ fun ProfileScreen(
             
             Spacer(modifier = Modifier.height(12.dp))
             
-            // Main profile card
-            MainProfileCard()
+            if (userProfile.isInitial || isEditing) {
+                EditProfileCard(
+                    profile = userProfile,
+                    onSave = { age, birthYear, gender, conditions ->
+                        profileViewModel.updateProfile(age, birthYear, gender, conditions)
+                        isEditing = false
+                    },
+                    onCancel = { if (!userProfile.isInitial) isEditing = false }
+                )
+            } else {
+                MainProfileCard(
+                    profile = userProfile,
+                    onEditClick = { isEditing = true }
+                )
+            }
             
             Spacer(modifier = Modifier.height(12.dp))
             
@@ -130,7 +157,91 @@ fun ProfileScreen(
 }
 
 @Composable
-fun MainProfileCard() {
+fun EditProfileCard(
+    profile: UserProfile,
+    onSave: (String, String, String, List<String>) -> Unit,
+    onCancel: () -> Unit
+) {
+    var age by remember { mutableStateOf(profile.age) }
+    var birthYear by remember { mutableStateOf(profile.birthYear) }
+    var gender by remember { mutableStateOf(profile.gender) }
+    var conditionsInput by remember { mutableStateOf(profile.conditions.joinToString(", ")) }
+
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        color = Color.White,
+        shadowElevation = 2.dp
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(text = if (profile.isInitial) "Nhập thông tin của bạn" else "Chỉnh sửa hồ sơ", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            OutlinedTextField(
+                value = age,
+                onValueChange = { age = it },
+                label = { Text("Tuổi") },
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp)
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            OutlinedTextField(
+                value = birthYear,
+                onValueChange = { birthYear = it },
+                label = { Text("Năm sinh") },
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp)
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            OutlinedTextField(
+                value = gender,
+                onValueChange = { gender = it },
+                label = { Text("Giới tính") },
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp)
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            OutlinedTextField(
+                value = conditionsInput,
+                onValueChange = { conditionsInput = it },
+                label = { Text("Bệnh nền (cách nhau bởi dấu phẩy)") },
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(12.dp)
+            )
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (!profile.isInitial) {
+                    OutlinedButton(
+                        onClick = onCancel,
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Text("Hủy")
+                    }
+                }
+                Button(
+                    onClick = {
+                        val conditions = conditionsInput.split(",").map { it.trim() }.filter { it.isNotEmpty() }
+                        onSave(age, birthYear, gender, conditions)
+                    },
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue)
+                ) {
+                    Text("Lưu hồ sơ")
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun MainProfileCard(
+    profile: UserProfile,
+    onEditClick: () -> Unit
+) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
@@ -150,17 +261,19 @@ fun MainProfileCard() {
                 }
                 Spacer(modifier = Modifier.width(16.dp))
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(text = "Tôi", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                    Text(text = profile.name, fontSize = 18.sp, fontWeight = FontWeight.Bold)
                     Text(text = "Chủ tài khoản", fontSize = 12.sp, color = TextGray)
                 }
-                Icon(Icons.Default.KeyboardArrowDown, contentDescription = null, tint = TextGray)
+                IconButton(onClick = onEditClick) {
+                    Icon(Icons.Default.Edit, contentDescription = "Sửa", tint = TextGray, modifier = Modifier.size(20.dp))
+                }
             }
             
             Spacer(modifier = Modifier.height(16.dp))
             
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                InfoBox(label = "Tuổi", value = "46", subValue = "(1980)", modifier = Modifier.weight(1f))
-                InfoBox(label = "Giới tính", value = "Nữ", modifier = Modifier.weight(1f))
+                InfoBox(label = "Tuổi", value = profile.age, subValue = "(${profile.birthYear})", modifier = Modifier.weight(1f))
+                InfoBox(label = "Giới tính", value = profile.gender, modifier = Modifier.weight(1f))
             }
             
             Spacer(modifier = Modifier.height(16.dp))
@@ -181,12 +294,23 @@ fun MainProfileCard() {
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(text = "Bệnh nền", fontSize = 13.sp, fontWeight = FontWeight.Bold)
                         }
-                        Text(text = "Cập nhật", fontSize = 12.sp, color = PrimaryBlue, fontWeight = FontWeight.Medium)
+                        Text(
+                            text = "Cập nhật",
+                            fontSize = 12.sp,
+                            color = PrimaryBlue,
+                            fontWeight = FontWeight.Medium,
+                            modifier = Modifier.clickable { onEditClick() }
+                        )
                     }
                     Spacer(modifier = Modifier.height(8.dp))
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        DiseaseTag("Huyết áp cao")
-                        DiseaseTag("Tiểu đường Type 2")
+                    if (profile.conditions.isEmpty()) {
+                        Text(text = "Chưa có thông tin bệnh nền", fontSize = 12.sp, color = TextGray)
+                    } else {
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            profile.conditions.forEach { condition ->
+                                DiseaseTag(condition)
+                            }
+                        }
                     }
                 }
             }
@@ -342,7 +466,7 @@ fun ProfileBottomNavigation(onHomeClick: () -> Unit, onHistoryClick: () -> Unit,
                 )
             )
             NavigationBarItem(
-                icon = { Icon(Icons.Outlined.HelpOutline, null, modifier = Modifier.size(24.dp)) },
+                icon = { Icon(Icons.AutoMirrored.Outlined.HelpOutline, null, modifier = Modifier.size(24.dp)) },
                 label = { Text(stringResource(R.string.nav_help), fontSize = 12.sp) },
                 selected = false,
                 onClick = onHelpClick,
