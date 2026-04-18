@@ -22,6 +22,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import edu.hust.medicalaichatbot.ui.theme.LightBlue
@@ -30,7 +31,6 @@ import edu.hust.medicalaichatbot.ui.theme.TextGray
 import edu.hust.medicalaichatbot.ui.viewmodel.AuthState
 import edu.hust.medicalaichatbot.ui.viewmodel.AuthViewModel
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LoginScreen(
     viewModel: AuthViewModel,
@@ -38,9 +38,6 @@ fun LoginScreen(
     onSkipLogin: () -> Unit,
     onRegisterClick: () -> Unit
 ) {
-    var phoneNumber by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
-    
     val authState by viewModel.authState.collectAsState()
 
     LaunchedEffect(authState) {
@@ -49,6 +46,27 @@ fun LoginScreen(
             viewModel.resetState()
         }
     }
+
+    LoginContent(
+        authState = authState,
+        onLogin = { phone, pass -> viewModel.login(phone, pass) },
+        onResetState = { viewModel.resetState() },
+        onSkipLogin = onSkipLogin,
+        onRegisterClick = onRegisterClick
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun LoginContent(
+    authState: AuthState,
+    onLogin: (String, String) -> Unit,
+    onResetState: () -> Unit,
+    onSkipLogin: () -> Unit,
+    onRegisterClick: () -> Unit
+) {
+    var phoneNumber by remember { mutableStateOf("") }
+    var password by remember { mutableStateOf("") }
 
     Column(
         modifier = Modifier
@@ -60,7 +78,33 @@ fun LoginScreen(
             .verticalScroll(rememberScrollState()),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(40.dp))
+
+        // Quote Section
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 32.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = "Chào mừng bạn!",
+                fontSize = 24.sp,
+                fontWeight = FontWeight.Bold,
+                color = PrimaryBlue,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
+            Text(
+                text = "\"Sức khỏe là vốn quý nhất của con người. Hãy để AI đồng hành cùng bạn chăm sóc sức khỏe mỗi ngày.\"",
+                fontSize = 14.sp,
+                color = TextGray,
+                fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
+                textAlign = TextAlign.Center,
+                lineHeight = 20.sp
+            )
+        }
+
+        Spacer(modifier = Modifier.height(32.dp))
 
         // Main Login Card
         Card(
@@ -120,7 +164,7 @@ fun LoginScreen(
                         value = phoneNumber,
                         onValueChange = { 
                             phoneNumber = it
-                            if (authState is AuthState.Error) viewModel.resetState()
+                            if (authState is AuthState.Error) onResetState()
                         },
                         modifier = Modifier.fillMaxWidth(),
                         label = { Text("Số điện thoại") },
@@ -149,7 +193,7 @@ fun LoginScreen(
                         value = password,
                         onValueChange = { 
                             password = it
-                            if (authState is AuthState.Error) viewModel.resetState()
+                            if (authState is AuthState.Error) onResetState()
                         },
                         modifier = Modifier.fillMaxWidth(),
                         label = { Text("Mật khẩu") },
@@ -173,14 +217,16 @@ fun LoginScreen(
                         singleLine = true
                     )
 
-                    if (authState is AuthState.Error) {
-                        Text(
-                            text = (authState as AuthState.Error).message,
-                            color = Color.Red,
-                            fontSize = 12.sp,
-                            modifier = Modifier.padding(top = 4.dp, start = 8.dp)
-                        )
-                    }
+                    // Fixed space for error message to prevent layout shift
+                    Text(
+                        text = if (authState is AuthState.Error) authState.message else "",
+                        color = Color.Red,
+                        fontSize = 12.sp,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 4.dp, start = 8.dp)
+                            .height(12.dp) // Fixed height to prevent layout jump
+                    )
                 }
 
                 Spacer(modifier = Modifier.height(20.dp))
@@ -188,7 +234,7 @@ fun LoginScreen(
                 // Action Buttons
                 Button(
                     onClick = {
-                        viewModel.login(phoneNumber, password)
+                        onLogin(phoneNumber, password)
                     },
                     modifier = Modifier
                         .fillMaxWidth()
@@ -337,4 +383,40 @@ fun SocialButton(
             Text(text = text, color = Color.Black, fontSize = 13.sp, fontWeight = FontWeight.Medium)
         }
     }
+}
+
+@Preview(showBackground = true, name = "Login Screen - Idle")
+@Composable
+fun LoginScreenIdlePreview() {
+    LoginContent(
+        authState = AuthState.Idle,
+        onLogin = { _, _ -> },
+        onResetState = {},
+        onSkipLogin = {},
+        onRegisterClick = {}
+    )
+}
+
+@Preview(showBackground = true, name = "Login Screen - Loading")
+@Composable
+fun LoginScreenLoadingPreview() {
+    LoginContent(
+        authState = AuthState.Loading,
+        onLogin = { _, _ -> },
+        onResetState = {},
+        onSkipLogin = {},
+        onRegisterClick = {}
+    )
+}
+
+@Preview(showBackground = true, name = "Login Screen - Error")
+@Composable
+fun LoginScreenErrorPreview() {
+    LoginContent(
+        authState = AuthState.Error("Số điện thoại hoặc mật khẩu không chính xác"),
+        onLogin = { _, _ -> },
+        onResetState = {},
+        onSkipLogin = {},
+        onRegisterClick = {}
+    )
 }

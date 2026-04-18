@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -19,15 +20,17 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.HelpOutline
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Error
+import androidx.compose.material.icons.filled.HelpOutline
 import androidx.compose.material.icons.filled.History
-import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.outlined.Home
 import androidx.compose.material.icons.outlined.PersonOutline
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -58,7 +61,6 @@ import edu.hust.medicalaichatbot.data.model.HealthStatus
 import edu.hust.medicalaichatbot.domain.model.ChatThread
 import edu.hust.medicalaichatbot.ui.theme.BackgroundGray
 import edu.hust.medicalaichatbot.ui.theme.EmergencyRed
-import edu.hust.medicalaichatbot.ui.theme.LightBlue
 import edu.hust.medicalaichatbot.ui.theme.PrimaryBlue
 import edu.hust.medicalaichatbot.ui.theme.SuccessGreen
 import edu.hust.medicalaichatbot.ui.theme.TextGray
@@ -72,6 +74,8 @@ fun HistoryScreen(
     viewModel: HistoryViewModel,
     onBackClick: () -> Unit = {},
     onHomeClick: () -> Unit = {},
+    onProfileClick: () -> Unit = {},
+    onHelpClick: () -> Unit = {},
     onThreadClick: (String) -> Unit = {}
 ) {
     val threads by viewModel.threads.collectAsState()
@@ -87,7 +91,7 @@ fun HistoryScreen(
 
     Scaffold(
         topBar = { HistoryTopBar() },
-        bottomBar = { HistoryBottomNavigation(onHomeClick) },
+        bottomBar = { HistoryBottomNavigation(onHomeClick, onProfileClick, onHelpClick) },
         containerColor = BackgroundGray
     ) { paddingValues ->
         Column(
@@ -333,38 +337,113 @@ fun StatusBadge(status: HealthStatus) {
 data class Quad<A, B, C, D>(val first: A, val second: B, val third: C, val fourth: D)
 
 @Composable
-fun HistoryBottomNavigation(onHomeClick: () -> Unit) {
-    NavigationBar(
-        containerColor = Color.White,
-        tonalElevation = 8.dp,
-        modifier = Modifier.height(64.dp)
+fun HistoryBottomNavigation(
+    onHomeClick: () -> Unit,
+    onProfileClick: () -> Unit,
+    onHelpClick: () -> Unit
+) {
+    Surface(
+        color = Color.White,
+        shadowElevation = 16.dp,
+        shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
+        modifier = Modifier.navigationBarsPadding()
     ) {
-        NavigationBarItem(
-            icon = { Icon(Icons.Default.Home, contentDescription = null, modifier = Modifier.size(24.dp)) },
-            label = { Text(stringResource(R.string.nav_home), fontSize = 11.sp) },
-            selected = false,
-            onClick = onHomeClick,
-            colors = NavigationBarItemDefaults.colors(unselectedIconColor = TextGray, unselectedTextColor = TextGray)
-        )
-        NavigationBarItem(
-            icon = { Icon(Icons.Default.History, contentDescription = null, modifier = Modifier.size(24.dp)) },
-            label = { Text(stringResource(R.string.nav_history), fontSize = 11.sp) },
-            selected = true,
-            onClick = {},
-            colors = NavigationBarItemDefaults.colors(
-                selectedIconColor = PrimaryBlue,
-                selectedTextColor = PrimaryBlue,
-                unselectedIconColor = TextGray,
-                unselectedTextColor = TextGray,
-                indicatorColor = LightBlue
+        NavigationBar(
+            containerColor = Color.Transparent,
+            tonalElevation = 0.dp,
+            modifier = Modifier.height(80.dp)
+        ) {
+            NavigationBarItem(
+                icon = {
+                    Icon(
+                        Icons.Outlined.Home,
+                        contentDescription = null,
+                        modifier = Modifier.size(24.dp)
+                    )
+                },
+                label = {
+                    Text(
+                        stringResource(R.string.nav_home),
+                        fontWeight = FontWeight.Medium,
+                        fontSize = 12.sp
+                    )
+                },
+                selected = false,
+                onClick = onHomeClick,
+                colors = NavigationBarItemDefaults.colors(
+                    unselectedIconColor = TextGray,
+                    unselectedTextColor = TextGray
+                )
             )
-        )
-        NavigationBarItem(
-            icon = { Icon(Icons.Outlined.PersonOutline, contentDescription = null, modifier = Modifier.size(24.dp)) },
-            label = { Text(stringResource(R.string.nav_profile), fontSize = 11.sp) },
-            selected = false,
-            onClick = {},
-            colors = NavigationBarItemDefaults.colors(unselectedIconColor = TextGray, unselectedTextColor = TextGray)
-        )
+            NavigationBarItem(
+                icon = {
+                    Icon(
+                        Icons.Default.History,
+                        contentDescription = null,
+                        modifier = Modifier.size(24.dp)
+                    )
+                },
+                label = {
+                    Text(
+                        stringResource(R.string.nav_history),
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 12.sp
+                    )
+                },
+                selected = true,
+                onClick = {},
+                colors = NavigationBarItemDefaults.colors(
+                    selectedIconColor = PrimaryBlue,
+                    selectedTextColor = PrimaryBlue,
+                    indicatorColor = PrimaryBlue.copy(alpha = 0.1f),
+                    unselectedIconColor = TextGray,
+                    unselectedTextColor = TextGray
+                )
+            )
+            NavigationBarItem(
+                icon = {
+                    Icon(
+                        Icons.Outlined.PersonOutline,
+                        contentDescription = null,
+                        modifier = Modifier.size(24.dp)
+                    )
+                },
+                label = {
+                    Text(
+                        stringResource(R.string.nav_profile),
+                        fontWeight = FontWeight.Medium,
+                        fontSize = 12.sp
+                    )
+                },
+                selected = false,
+                onClick = onProfileClick,
+                colors = NavigationBarItemDefaults.colors(
+                    unselectedIconColor = TextGray,
+                    unselectedTextColor = TextGray
+                )
+            )
+            NavigationBarItem(
+                icon = {
+                    Icon(
+                        Icons.AutoMirrored.Filled.HelpOutline,
+                        contentDescription = null,
+                        modifier = Modifier.size(24.dp)
+                    )
+                },
+                label = {
+                    Text(
+                        stringResource(R.string.nav_help),
+                        fontWeight = FontWeight.Medium,
+                        fontSize = 12.sp
+                    )
+                },
+                selected = false,
+                onClick = onHelpClick,
+                colors = NavigationBarItemDefaults.colors(
+                    unselectedIconColor = TextGray,
+                    unselectedTextColor = TextGray
+                )
+            )
+        }
     }
 }

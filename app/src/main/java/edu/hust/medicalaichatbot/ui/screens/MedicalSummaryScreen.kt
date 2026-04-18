@@ -3,13 +3,15 @@ package edu.hust.medicalaichatbot.ui.screens
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -17,8 +19,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import edu.hust.medicalaichatbot.ui.theme.PrimaryBlue
 import edu.hust.medicalaichatbot.ui.viewmodel.HistoryViewModel
-
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import org.json.JSONArray
 import org.json.JSONException
 
@@ -84,9 +84,41 @@ fun MedicalSummaryScreen(
                             fontWeight = FontWeight.Bold,
                             color = PrimaryBlue
                         )
-                        Spacer(modifier = Modifier.height(8.dp))
+                        Spacer(modifier = Modifier.height(12.dp))
                         
-                        val displaySummary = thread.summary?.replace(Regex("\\[TRIAGE:.*?\\]"), "")?.trim()
+                        // Extract diagnosis from summary if present
+                        val diagnosisMatch = thread.summary?.let { 
+                            Regex("Kết luận: (.*?)(?:\n|$)").find(it)?.groupValues?.get(1) 
+                        }
+                        
+                        if (diagnosisMatch != null) {
+                            Surface(
+                                color = PrimaryBlue.copy(alpha = 0.1f),
+                                shape = RoundedCornerShape(8.dp),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Column(modifier = Modifier.padding(12.dp)) {
+                                    Text(
+                                        text = "Kết luận dự đoán:",
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = PrimaryBlue
+                                    )
+                                    Text(
+                                        text = diagnosisMatch,
+                                        fontSize = 15.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color.Black
+                                    )
+                                }
+                            }
+                            Spacer(modifier = Modifier.height(12.dp))
+                        }
+
+                        val displaySummary = thread.summary
+                            ?.replace(Regex("\\[TRIAGE:.*?\\]"), "")
+                            ?.replace(Regex("Kết luận: .*?(\n|$)"), "")
+                            ?.trim()
                         
                         Text(
                             text = displaySummary ?: "Chưa có bản tóm tắt cho cuộc hội thoại này.",
@@ -108,20 +140,30 @@ fun MedicalSummaryScreen(
                     )
                     Spacer(modifier = Modifier.height(12.dp))
                     
-                    val symptomsJson = thread.symptomCache
-                    try {
-                        val jsonArray = JSONArray(symptomsJson)
-                        for (i in 0 until jsonArray.length()) {
-                            val obj = jsonArray.getJSONObject(i)
-                            val q = obj.optString("q")
-                            val a = obj.optString("a")
-                            
-                            SymptomItem(question = q, answer = a)
-                            if (i < jsonArray.length() - 1) {
-                                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = Color.LightGray.copy(alpha = 0.5f))
+                    val symptomsJson = thread.symptomCache!!
+                    val symptomsList = remember(symptomsJson) {
+                        try {
+                            val jsonArray = JSONArray(symptomsJson)
+                            List(jsonArray.length()) { i ->
+                                val obj = jsonArray.getJSONObject(i)
+                                Pair(obj.optString("q"), obj.optString("a"))
+                            }
+                        } catch (e: JSONException) {
+                            null
+                        }
+                    }
+
+                    if (symptomsList != null) {
+                        symptomsList.forEachIndexed { i, symptom ->
+                            SymptomItem(question = symptom.first, answer = symptom.second)
+                            if (i < symptomsList.size - 1) {
+                                HorizontalDivider(
+                                    modifier = Modifier.padding(vertical = 8.dp),
+                                    color = Color.LightGray.copy(alpha = 0.5f)
+                                )
                             }
                         }
-                    } catch (e: JSONException) {
+                    } else {
                         Text(text = symptomsJson, fontSize = 14.sp, color = Color.DarkGray)
                     }
                 }

@@ -20,8 +20,11 @@ import edu.hust.medicalaichatbot.ui.screens.HistoryScreen
 import edu.hust.medicalaichatbot.ui.screens.HomeScreen
 import edu.hust.medicalaichatbot.ui.screens.LoginScreen
 import edu.hust.medicalaichatbot.ui.screens.OnboardingScreen
+import edu.hust.medicalaichatbot.ui.screens.ProfileScreen
+import edu.hust.medicalaichatbot.ui.screens.HelpScreen
 import edu.hust.medicalaichatbot.ui.screens.RegisterScreen
 import edu.hust.medicalaichatbot.ui.screens.SplashScreen
+import edu.hust.medicalaichatbot.ui.screens.MedicalSummaryScreen
 import edu.hust.medicalaichatbot.ui.theme.MedicalAIChatbotTheme
 import edu.hust.medicalaichatbot.ui.viewmodel.AuthViewModel
 import edu.hust.medicalaichatbot.ui.viewmodel.ChatViewModel
@@ -112,7 +115,9 @@ fun MedicalApp(
         composable("home") {
             HomeScreen(
                 chatViewModel = chatViewModel,
-                onHistoryClick = { navController.navigate("history") }
+                onHistoryClick = { navController.navigate("history") },
+                onProfileClick = { navController.navigate("profile") },
+                onHelpClick = { navController.navigate("help") }
             )
         }
         composable("history") {
@@ -123,9 +128,37 @@ fun MedicalApp(
                         popUpTo("home") { inclusive = true }
                     }
                 },
+                onProfileClick = { navController.navigate("profile") },
+                onHelpClick = { navController.navigate("help") },
                 onThreadClick = { threadId ->
+                    navController.navigate("summary/$threadId")
+                }
+            )
+        }
+        composable("profile") {
+            ProfileScreen(
+                onHomeClick = { navController.navigate("home") },
+                onHistoryClick = { navController.navigate("history") },
+                onHelpClick = { navController.navigate("help") }
+            )
+        }
+        composable("help") {
+            HelpScreen(
+                onHomeClick = { navController.navigate("home") },
+                onHistoryClick = { navController.navigate("history") },
+                onProfileClick = { navController.navigate("profile") }
+            )
+        }
+        composable("summary/{threadId}") { backStackEntry ->
+            val threadId = backStackEntry.arguments?.getString("threadId") ?: return@composable
+            MedicalSummaryScreen(
+                threadId = threadId,
+                viewModel = historyViewModel,
+                onBackClick = { 
                     chatViewModel.setCurrentThread(threadId)
-                    navController.navigate("home")
+                    navController.navigate("home") {
+                        popUpTo("history") { inclusive = false }
+                    }
                 }
             )
         }
