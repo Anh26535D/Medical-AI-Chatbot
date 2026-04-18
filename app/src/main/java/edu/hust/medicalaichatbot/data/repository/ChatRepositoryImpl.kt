@@ -9,6 +9,7 @@ import com.google.firebase.Firebase
 import com.google.firebase.ai.ai
 import com.google.firebase.ai.type.GenerativeBackend
 import com.google.firebase.ai.type.content
+import edu.hust.medicalaichatbot.BuildConfig
 import edu.hust.medicalaichatbot.data.local.dao.ChatDao
 import edu.hust.medicalaichatbot.data.mapper.toDomain
 import edu.hust.medicalaichatbot.data.mapper.toEntity
@@ -19,10 +20,13 @@ import edu.hust.medicalaichatbot.domain.model.ChatThread
 import edu.hust.medicalaichatbot.domain.model.MessageRole
 import edu.hust.medicalaichatbot.domain.repository.ChatRepository
 import edu.hust.medicalaichatbot.utils.Def
+import edu.hust.medicalaichatbot.utils.LlmParser
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
+import edu.hust.medicalaichatbot.utils.LocationUtils
+import java.util.Locale
 
 class ChatRepositoryImpl(
     private val chatDao: ChatDao,
@@ -38,7 +42,7 @@ class ChatRepositoryImpl(
     private val generativeModel = Firebase.ai(backend = GenerativeBackend.googleAI())
         .generativeModel(
             modelName = modelName,
-            systemInstruction = content { text(MedicalChatManager.DEFAULT_SYSTEM_PROMPT) }
+            systemInstruction = content { text(BuildConfig.SYSTEM_PROMPT) }
         )
 
     override fun getMessages(threadId: String): Flow<PagingData<ChatMessage>> {
@@ -102,7 +106,7 @@ class ChatRepositoryImpl(
                 val places = placeSearcher.findNearbyPlaces(location.latitude, location.longitude)
                 if (places.isNotEmpty()) {
                     nearbyPlacesString = places.joinToString("\n") { 
-                        "- ${it.name} (${String.format("%.1f", calculateDist(location.latitude, location.longitude, it.lat, it.lon))} km) - ${it.address}"
+                        "- ${it.name} (${String.format(Locale.ROOT, "%.1f", LocationUtils.calculateDistance(location.latitude, location.longitude, it.lat, it.lon))} km) - ${it.address}"
                     }
                 }
             }
@@ -110,8 +114,8 @@ class ChatRepositoryImpl(
             // 2. Lấy thông tin thread và summary
             val thread = chatDao.getThreadById(threadId)
             val currentSummary = thread?.summary
+            val symptomCache = thread?.symptomCache
 
-            // 3. Chuyển đổi history
             // 3. Chuyển đổi history
             val historyContent = history.map { 
                 content(role = if (it.role == MessageRole.USER) "user" else "model") { text(it.content) }
@@ -119,17 +123,31 @@ class ChatRepositoryImpl(
 
             val chatManager = MedicalChatManager(generativeModel, historyContent.takeLast(12))
             
-            // 4. Gửi tin nhắn với Location Context và Medical Summary
+            // 4. Gửi tin nhắn với Location Context, Medical Summary và Symptom Cache
             val response = chatManager.sendMessage(
                 prompt = prompt, 
                 currentSummary = currentSummary,
-                nearbyPlaces = nearbyPlacesString
+                nearbyPlaces = nearbyPlacesString,
+                symptomCache = symptomCache
             )
             val responseText = response.text ?: "Xin lỗi, tôi không thể xử lý yêu cầu lúc này."
 
-            // 5. Nén ngữ cảnh tự động
-            if (chatManager.shouldCompress()) {
-                chatManager.requestMedicalSummary()?.let { newSummary ->
+            // 5. Cập nhật Cache triệu chứng và Nén ngữ cảnh tự động
+            val parsedResponse = LlmParser.parse(responseText)
+            
+            chatManager.extractSymptomCache()?.let { newCache ->
+                chatDao.updateThreadSymptomCache(threadId, newCache)
+            }
+
+            // Generate or update summary if compression is needed OR if a diagnosis guess is provided
+            if (chatManager.shouldCompress() || (parsedResponse.diagnosisGuess != null && thread?.summary == null)) {
+                chatManager.requestMedicalSummary(parsedResponse.triageTag?.name)?.let { newSummary ->
+                    chatDao.updateThreadSummary(threadId, newSummary)
+                }
+            } else if (parsedResponse.diagnosisGuess != null) {
+                // If we already have a summary but got a new diagnosis guess, maybe update it?
+                // For now, let's update it to keep the diagnosis current
+                chatManager.requestMedicalSummary(parsedResponse.triageTag?.name)?.let { newSummary ->
                     chatDao.updateThreadSummary(threadId, newSummary)
                 }
             }
@@ -139,16 +157,5 @@ class ChatRepositoryImpl(
             Log.e(TAG, "getAiResponse Error", e)
             Result.failure(e)
         }
-    }
-
-    private fun calculateDist(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double {
-        val r = 6371.0
-        val dLat = Math.toRadians(lat2 - lat1)
-        val dLon = Math.toRadians(lon2 - lon1)
-        val a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-                Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2)) *
-                Math.sin(dLon / 2) * Math.sin(dLon / 2)
-        val c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
-        return r * c
     }
 }

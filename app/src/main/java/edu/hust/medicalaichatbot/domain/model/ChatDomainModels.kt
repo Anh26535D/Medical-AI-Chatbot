@@ -4,6 +4,10 @@ enum class MessageRole {
     USER, ASSISTANT, ERROR
 }
 
+enum class TriageTag(val level: Int) {
+    RED(4), ORANGE(3), YELLOW(2), GREEN(1)
+}
+
 data class ChatMessage(
     val id: Long = 0,
     val threadId: String,
@@ -18,5 +22,6 @@ data class ChatThread(
     val title: String,
     val lastUpdated: Long,
     val modelName: String,
-    val summary: String? = null
+    val summary: String? = null,
+    val symptomCache: String? = null
 )

@@ -38,7 +38,8 @@ fun ChatThreadEntity.toDomain(): ChatThread {
         title = title,
         lastUpdated = lastUpdated,
         modelName = modelName,
-        summary = summary
+        summary = summary,
+        symptomCache = symptomCache
     )
 }
 
@@ -48,6 +49,7 @@ fun ChatThread.toEntity(): ChatThreadEntity {
         title = title,
         lastUpdated = lastUpdated,
         modelName = modelName,
-        summary = summary
+        summary = summary,
+        symptomCache = symptomCache
     )
 }

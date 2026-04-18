@@ -12,7 +12,7 @@ import edu.hust.medicalaichatbot.data.local.entity.User
 
 @Database(
     entities = [User::class, ChatThread::class, ChatMessageEntity::class],
-    version = 3,
+    version = 4,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {

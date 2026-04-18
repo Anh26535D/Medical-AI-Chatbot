@@ -1,5 +1,6 @@
 package edu.hust.medicalaichatbot.data.service
 
+import edu.hust.medicalaichatbot.utils.LocationUtils
 import java.util.*
 import kotlin.math.*
 
@@ -54,7 +55,7 @@ class MedicalPlaceSearcher {
             
             // Lọc thêm theo khoảng cách thực tế (Haversine formula)
             placesInGrid.forEach { place ->
-                if (calculateDistance(userLat, userLon, place.lat, place.lon) <= radiusKm) {
+                if (LocationUtils.calculateDistance(userLat, userLon, place.lat, place.lon) <= radiusKm) {
                     if (!result.contains(place)) result.add(place)
                 }
             }
@@ -72,15 +73,6 @@ class MedicalPlaceSearcher {
             if (result.size >= 5) break // Tìm đủ 5 điểm gần nhất thì dừng
         }
 
-        return result.sortedBy { calculateDistance(userLat, userLon, it.lat, it.lon) }
-    }
-
-    private fun calculateDistance(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double {
-        val r = 6371 // Bán kính trái đất (km)
-        val dLat = Math.toRadians(lat2 - lat1)
-        val dLon = Math.toRadians(lon2 - lon1)
-        val a = sin(dLat / 2).pow(2) + cos(Math.toRadians(lat1)) * cos(Math.toRadians(lat2)) * sin(dLon / 2).pow(2)
-        val c = 2 * atan2(sqrt(a), sqrt(1 - a))
-        return r * c
+        return result.sortedBy { LocationUtils.calculateDistance(userLat, userLon, it.lat, it.lon) }
     }
 }

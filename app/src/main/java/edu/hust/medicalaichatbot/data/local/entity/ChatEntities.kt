@@ -8,7 +8,8 @@ data class ChatThread(
     val title: String,
     val lastUpdated: Long,
     val modelName: String,
-    val summary: String? = null // Cột mới để lưu tóm tắt bệnh án
+    val summary: String? = null, // Cột mới để lưu tóm tắt bệnh án
+    val symptomCache: String? = null // Cột mới để lưu cache triệu chứng
 )
 
 @Entity(

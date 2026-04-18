@@ -7,10 +7,12 @@ import com.google.firebase.ai.type.content
 import android.util.Log
 import edu.hust.medicalaichatbot.utils.Def
 
+import edu.hust.medicalaichatbot.BuildConfig
+
 class MedicalChatManager(
     private val model: GenerativeModel,
     initialHistory: List<Content> = emptyList(),
-    private val systemPrompt: String? = DEFAULT_SYSTEM_PROMPT
+    private val systemPrompt: String? = BuildConfig.SYSTEM_PROMPT
 ) {
     private val TAG = Def.tagOf("ChatManager")
     private val _history = initialHistory.toMutableList()
@@ -25,17 +27,10 @@ class MedicalChatManager(
         return _history.size >= 10 || totalChars > 4000
     }
 
-    suspend fun requestMedicalSummary(): String? {
+    suspend fun requestMedicalSummary(triageTag: String? = null): String? {
+        val triageInfo = if (triageTag != null) "Triage Level: $triageTag\n" else ""
         val summaryPrompt = content(role = "user") {
-            text("""
-                Dựa trên cuộc hội thoại y tế trên, hãy tạo một bản tóm tắt bệnh án ngắn gọn (Medical Summary).
-                Bản tóm tắt nên bao gồm: 
-                - Triệu chứng chính.
-                - Tiền sử (nếu có).
-                - Các khuyến cáo đã đưa ra.
-                Nếu chưa đủ dữ kiện để tóm tắt, hãy trả về chuỗi "INCOMPLETE".
-                Trả về kết quả dưới dạng Markdown.
-            """.trimIndent())
+            text(BuildConfig.SUMMARY_PROMPT.replace("\$triageInfo", triageInfo))
         }
 
         val requestList = mutableListOf<Content>()
@@ -53,6 +48,24 @@ class MedicalChatManager(
         }
     }
 
+    suspend fun extractSymptomCache(): String? {
+        val cachePrompt = content(role = "user") {
+            text(BuildConfig.SYMPTOM_CACHE_PROMPT)
+        }
+
+        val requestList = mutableListOf<Content>()
+        requestList.addAll(_history)
+        requestList.add(cachePrompt)
+
+        return try {
+            val response = model.generateContent(requestList)
+            val result = response.text?.trim()?.removeSurrounding("```json", "```")?.trim()
+            if (result == null || result == "[]" || result.isEmpty()) null else result
+        } catch (e: Exception) {
+            null
+        }
+    }
+
     /**
      * sendMessage với khả năng nhận thông tin vị trí thực tế
      * @param nearbyPlaces: Danh sách các cơ sở y tế gần đó (đã được app lấy qua GPS/Maps API)
@@ -60,7 +73,8 @@ class MedicalChatManager(
     suspend fun sendMessage(
         prompt: String, 
         currentSummary: String? = null,
-        nearbyPlaces: String? = null
+        nearbyPlaces: String? = null,
+        symptomCache: String? = null
     ): GenerateContentResponse {
         val userContent = content(role = "user") { text(prompt) }
         _history.add(userContent)
@@ -70,27 +84,37 @@ class MedicalChatManager(
         // 1. System Prompt
         systemContent?.let { requestList.add(it) }
         
-        // 2. Location Info (Dữ liệu thực tế từ thiết bị)
+        // 2. Location Info
         nearbyPlaces?.let {
             requestList.add(content(role = "user") { 
-                text("Dưới đây là danh sách các cơ sở y tế/nhà thuốc gần vị trí của tôi nhất (sắp xếp theo khoảng cách): $it") 
+                text(BuildConfig.CONTEXT_LOCATION.format(it)) 
             })
             requestList.add(content(role = "model") { 
-                text("Tôi đã ghi nhận các địa điểm y tế gần bạn. Tôi sẽ chỉ dẫn bạn đến đó nếu cần thiết.") 
+                text("Tôi đã ghi nhận các địa điểm y tế gần bạn.") 
             })
         }
-        
-        // 3. Medical Summary
+
+        // 3. Symptom Cache (Thông tin đã biết)
+        symptomCache?.let {
+            requestList.add(content(role = "user") {
+                text(BuildConfig.CONTEXT_SYMPTOMS.format(it))
+            })
+            requestList.add(content(role = "model") {
+                text("Đã ghi nhớ các triệu chứng đã biết. Tôi sẽ không hỏi lặp lại.")
+            })
+        }
+
+        // 4. Medical Summary
         currentSummary?.let { 
             requestList.add(content(role = "user") { 
-                text("Tóm tắt bệnh sử trước đó: $it") 
+                text(BuildConfig.CONTEXT_SUMMARY.format(it))
             })
             requestList.add(content(role = "model") { 
                 text("Đã hiểu bệnh sử.") 
             })
         }
 
-        val maxRecent = if (currentSummary != null) 6 else 12
+        val maxRecent = if (currentSummary != null || symptomCache != null) 6 else 12
         requestList.addAll(_history.takeLast(maxRecent))
 
         try {
@@ -106,31 +130,6 @@ class MedicalChatManager(
     }
 
     companion object {
-        const val DEFAULT_SYSTEM_PROMPT = """
-            BẠN LÀ TRỢ LÝ Y TẾ CHUYÊN NGHIỆP TUÂN THỦ QUY TRÌNH PHÂN LOẠI (TRIAGE).
-            
-            LUỒNG XỬ LÝ CỐ ĐỊNH:
-            1. KIỂM TRA RED FLAGS: Ngay khi User nhập triệu chứng, phải kiểm tra các dấu hiệu nguy hiểm (khó thở, đau ngực dữ dội, mất ý thức, chảy máu không cầm được).
-               - Nếu CÓ: Dừng mọi câu hỏi, trả về tag [TRIAGE: RED]. Hướng dẫn sơ cứu và yêu cầu gọi 115.
-            2. ĐÀO SÂU THÔNG TIN: Nếu không có dấu hiệu nguy hiểm, hãy đặt câu hỏi về: Thời gian bị, Mức độ đau/khó chịu, và Bệnh nền/Tiền sử.
-            3. PHÂN LOẠI VÀ ĐƯA RA KẾT QUẢ:
-               - Mức 4 (Đỏ): Nguy hiểm tính mạng -> Tag [TRIAGE: RED].
-               - Mức 3 (Cam): Cần bác sĩ chẩn đoán -> Tag [TRIAGE: ORANGE].
-               - Mức 2 (Vàng): Triệu chứng nhẹ, tư vấn dược sĩ -> Tag [TRIAGE: YELLOW].
-               - Mức 1 (Xanh): Vấn đề thông thường, tự chăm sóc -> Tag [TRIAGE: GREEN].
-
-            QUY TẮC PHẢN HỒI:
-            - Mỗi phản hồi phân loại PHẢI đi kèm tag tương ứng ở CUỐI văn bản để hệ thống hiển thị Button.
-            - [TRIAGE: RED]: Hiển thị nút Gọi 115 & Gợi ý bệnh viện gần nhất.
-            - [TRIAGE: ORANGE]: Hiển thị nút Tìm phòng khám & Đặt lịch.
-            - [TRIAGE: YELLOW]: Hiển thị nút Kết nối Dược sĩ.
-            - [TRIAGE: GREEN]: Hướng dẫn tự chăm sóc tại nhà.
-            
-            CHÚ Ý QUAN TRỌNG:
-            - Không kê đơn thuốc cụ thể. 
-            - Nếu liệt kê thuốc, phải ghi rõ "Để tham khảo khi hỏi ý kiến bác sĩ/dược sĩ" kèm hãng sản xuất.
-            - Sử dụng danh sách vị trí gần nhất (nếu có) để chỉ dẫn trong mức ĐỎ và CAM.
-            - Trả lời bằng tiếng Việt chuyên nghiệp, ân cần.
-        """
+        // Removed hardcoded prompts. They are now in BuildConfig.
     }
 }

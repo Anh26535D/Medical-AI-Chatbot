@@ -40,4 +40,7 @@ interface ChatDao {
 
     @Query("UPDATE chat_threads SET summary = :summary WHERE threadId = :threadId")
     suspend fun updateThreadSummary(threadId: String, summary: String)
+
+    @Query("UPDATE chat_threads SET symptomCache = :cache WHERE threadId = :threadId")
+    suspend fun updateThreadSymptomCache(threadId: String, cache: String)
 }
