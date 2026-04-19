@@ -22,6 +22,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import edu.hust.medicalaichatbot.R
+import edu.hust.medicalaichatbot.ui.components.CommonTopBar
 import edu.hust.medicalaichatbot.ui.theme.BackgroundGray
 import edu.hust.medicalaichatbot.ui.theme.PrimaryBlue
 import edu.hust.medicalaichatbot.ui.theme.SurfaceGray
@@ -37,43 +38,46 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import edu.hust.medicalaichatbot.domain.model.UserProfile
 import edu.hust.medicalaichatbot.ui.viewmodel.ProfileViewModel
 
+import edu.hust.medicalaichatbot.ui.viewmodel.AuthViewModel
+import edu.hust.medicalaichatbot.ui.viewmodel.AuthState
+
 @Composable
 fun ProfileScreen(
-    onHomeClick: () -> Unit,
-    onHistoryClick: () -> Unit,
-    onHelpClick: () -> Unit,
-    profileViewModel: ProfileViewModel = viewModel()
+    profileViewModel: ProfileViewModel = viewModel(),
+    authViewModel: AuthViewModel = viewModel(),
+    onLoginClick: () -> Unit = {}
 ) {
     val userProfile by profileViewModel.userProfile.collectAsState()
+    val authState by authViewModel.authState.collectAsState()
+    val isGuest = authState is AuthState.Guest
+    
     var isEditing by remember { mutableStateOf(false) }
 
-    Scaffold(
-        topBar = { ProfileTopBar() },
-        bottomBar = { ProfileBottomNavigation(onHomeClick, onHistoryClick, onHelpClick) },
-        containerColor = BackgroundGray
-    ) { paddingValues ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .verticalScroll(rememberScrollState())
-                .padding(16.dp)
-        ) {
-            Text(
-                text = "Hồ sơ sức khỏe",
-                fontSize = 28.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color.Black
-            )
-            Text(
-                text = "Quản lý và cập nhật thông tin y tế gia đình.",
-                fontSize = 14.sp,
-                color = TextGray,
-                modifier = Modifier.padding(top = 4.dp)
-            )
-            
-            Spacer(modifier = Modifier.height(24.dp))
-            
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(BackgroundGray)
+            .verticalScroll(rememberScrollState())
+            .padding(16.dp)
+    ) {
+        Text(
+            text = "Hồ sơ sức khỏe",
+            fontSize = 28.sp,
+            fontWeight = FontWeight.Bold,
+            color = Color.Black
+        )
+        Text(
+            text = "Quản lý và cập nhật thông tin y tế gia đình.",
+            fontSize = 14.sp,
+            color = TextGray,
+            modifier = Modifier.padding(top = 4.dp)
+        )
+        
+        Spacer(modifier = Modifier.height(24.dp))
+        
+        if (isGuest) {
+            GuestAccountPlaceholder(onLoginClick = onLoginClick)
+        } else {
             Text(
                 text = "DANH SÁCH HỒ SƠ",
                 fontSize = 12.sp,
@@ -387,91 +391,3 @@ fun DependentProfileItem(name: String, role: String, color: Color, icon: android
     }
 }
 
-@Composable
-fun ProfileTopBar() {
-    Surface(color = Color.Transparent) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .statusBarsPadding()
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Surface(
-                    modifier = Modifier.size(36.dp),
-                    shape = RoundedCornerShape(8.dp),
-                    color = PrimaryBlue
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Icon(Icons.Default.Shield, null, tint = Color.White, modifier = Modifier.size(20.dp))
-                    }
-                }
-                Spacer(modifier = Modifier.width(12.dp))
-                Text(
-                    text = stringResource(R.string.app_title),
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = PrimaryBlue
-                )
-            }
-            Surface(
-                modifier = Modifier.size(36.dp),
-                shape = CircleShape,
-                color = Color.LightGray
-            ) {
-                Icon(Icons.Default.Person, null, tint = Color.White)
-            }
-        }
-    }
-}
-
-@Composable
-fun ProfileBottomNavigation(onHomeClick: () -> Unit, onHistoryClick: () -> Unit, onHelpClick: () -> Unit) {
-    Surface(
-        color = Color.White,
-        shadowElevation = 16.dp,
-        shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
-        modifier = Modifier.navigationBarsPadding()
-    ) {
-        NavigationBar(
-            containerColor = Color.Transparent,
-            tonalElevation = 0.dp,
-            modifier = Modifier.height(80.dp)
-        ) {
-            NavigationBarItem(
-                icon = { Icon(Icons.Outlined.Home, null, modifier = Modifier.size(24.dp)) },
-                label = { Text(stringResource(R.string.nav_home), fontSize = 12.sp) },
-                selected = false,
-                onClick = onHomeClick,
-                colors = NavigationBarItemDefaults.colors(unselectedIconColor = TextGray, unselectedTextColor = TextGray)
-            )
-            NavigationBarItem(
-                icon = { Icon(Icons.Outlined.History, null, modifier = Modifier.size(24.dp)) },
-                label = { Text(stringResource(R.string.nav_history), fontSize = 12.sp) },
-                selected = false,
-                onClick = onHistoryClick,
-                colors = NavigationBarItemDefaults.colors(unselectedIconColor = TextGray, unselectedTextColor = TextGray)
-            )
-            NavigationBarItem(
-                icon = { Icon(Icons.Filled.Person, null, modifier = Modifier.size(24.dp)) },
-                label = { Text(stringResource(R.string.nav_profile), fontWeight = FontWeight.Bold, fontSize = 12.sp) },
-                selected = true,
-                onClick = {},
-                colors = NavigationBarItemDefaults.colors(
-                    selectedIconColor = PrimaryBlue,
-                    selectedTextColor = PrimaryBlue,
-                    indicatorColor = PrimaryBlue.copy(alpha = 0.1f)
-                )
-            )
-            NavigationBarItem(
-                icon = { Icon(Icons.AutoMirrored.Outlined.HelpOutline, null, modifier = Modifier.size(24.dp)) },
-                label = { Text(stringResource(R.string.nav_help), fontSize = 12.sp) },
-                selected = false,
-                onClick = onHelpClick,
-                colors = NavigationBarItemDefaults.colors(unselectedIconColor = TextGray, unselectedTextColor = TextGray)
-            )
-        }
-    }
-}

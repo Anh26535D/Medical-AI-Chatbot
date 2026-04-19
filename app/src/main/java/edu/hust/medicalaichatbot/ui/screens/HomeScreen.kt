@@ -12,52 +12,34 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.HelpOutline
-import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.CalendarMonth
-import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.LocalPharmacy
 import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.MedicalServices
-import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Phone
-import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.SmartToy
 import androidx.compose.material.icons.filled.Warning
-import androidx.compose.material.icons.outlined.History
-import androidx.compose.material.icons.outlined.PersonOutline
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
-import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -89,10 +71,7 @@ import java.util.Locale
 
 @Composable
 fun HomeScreen(
-    chatViewModel: ChatViewModel = viewModel(),
-    onHistoryClick: () -> Unit = {},
-    onProfileClick: () -> Unit = {},
-    onHelpClick: () -> Unit = {}
+    chatViewModel: ChatViewModel = viewModel()
 ) {
     val messages = chatViewModel.messages.collectAsLazyPagingItems()
     val isLoading by chatViewModel.isLoading.collectAsState()
@@ -103,84 +82,19 @@ fun HomeScreen(
         }
     }
     
-    Scaffold(
-        topBar = { HomeTopBar() },
-        bottomBar = { 
-            HomeBottomNavigation(
-                onHistoryClick = onHistoryClick,
-                onProfileClick = onProfileClick,
-                onHelpClick = onHelpClick,
-                onSendMessage = { chatViewModel.sendMessage(it) }
-            ) 
-        },
-        containerColor = BackgroundGray
-    ) { paddingValues ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-        ) {
-            ChatSection(
-                messages = messages,
-                isLoading = isLoading,
-                modifier = Modifier.weight(1f)
-            )
-        }
-    }
-}
-
-@Composable
-fun HomeTopBar() {
-    Surface(
-        shadowElevation = 4.dp,
-        color = Color.White
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(BackgroundGray)
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .statusBarsPadding()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Surface(
-                    modifier = Modifier.size(44.dp),
-                    shape = RoundedCornerShape(12.dp),
-                    color = PrimaryBlue
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Icon(Icons.Default.Shield, null, tint = Color.White, modifier = Modifier.size(26.dp))
-                    }
-                }
-                Spacer(modifier = Modifier.width(12.dp))
-                Column {
-                    Text(
-                        text = stringResource(R.string.app_title),
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = PrimaryBlue
-                    )
-                    Text(
-                        text = "Trợ lý sức khỏe AI",
-                        fontSize = 12.sp,
-                        color = TextGray
-                    )
-                }
-            }
-
-            Surface(
-                modifier = Modifier.size(40.dp),
-                shape = CircleShape,
-                color = SurfaceGray
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(Icons.Default.Person, null, tint = PrimaryBlue)
-                }
-            }
-        }
+        ChatSection(
+            messages = messages,
+            isLoading = isLoading,
+            modifier = Modifier.fillMaxSize()
+        )
     }
 }
+
 
 @Composable
 fun ChatSection(
@@ -504,177 +418,3 @@ fun AiLoadingIndicator() {
     }
 }
 
-@Composable
-fun MessageInput(onSendMessage: (String) -> Unit) {
-    var text by remember { mutableStateOf("") }
-    
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(Color.White)
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Surface(
-            modifier = Modifier.weight(1f),
-            shape = RoundedCornerShape(24.dp),
-            color = SurfaceGray
-        ) {
-            TextField(
-                value = text,
-                onValueChange = { text = it },
-                placeholder = { Text("Mô tả triệu chứng của bạn...", fontSize = 14.sp) },
-                modifier = Modifier.fillMaxWidth(),
-                colors = TextFieldDefaults.colors(
-                    focusedContainerColor = Color.Transparent,
-                    unfocusedContainerColor = Color.Transparent,
-                    focusedIndicatorColor = Color.Transparent,
-                    unfocusedIndicatorColor = Color.Transparent,
-                ),
-                maxLines = 5
-            )
-        }
-        
-        Spacer(modifier = Modifier.width(12.dp))
-
-        IconButton(
-            onClick = {
-                if (text.isNotBlank()) {
-                    onSendMessage(text)
-                    text = ""
-                }
-            },
-            modifier = Modifier.size(48.dp),
-            enabled = text.isNotBlank()
-        ) {
-            Surface(
-                shape = CircleShape,
-                color = if (text.isNotBlank()) PrimaryBlue else Color.LightGray,
-                modifier = Modifier.fillMaxSize()
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    Icon(Icons.AutoMirrored.Filled.Send, null, tint = Color.White, modifier = Modifier.size(24.dp))
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun HomeBottomNavigation(
-    onHistoryClick: () -> Unit,
-    onProfileClick: () -> Unit,
-    onHelpClick: () -> Unit,
-    onSendMessage: ((String) -> Unit)? = null
-) {
-    Surface(
-        color = Color.White,
-        shadowElevation = 16.dp,
-        shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
-        modifier = Modifier.navigationBarsPadding()
-    ) {
-        Column {
-            if (onSendMessage != null) {
-                MessageInput(onSendMessage = onSendMessage)
-                HorizontalDivider(color = SurfaceGray.copy(alpha = 0.5f), thickness = 0.5.dp)
-            }
-            NavigationBar(
-                containerColor = Color.Transparent,
-                tonalElevation = 0.dp,
-                modifier = Modifier.height(80.dp)
-            ) {
-                NavigationBarItem(
-                    icon = {
-                        Icon(
-                            Icons.Filled.Home,
-                            contentDescription = null,
-                            modifier = Modifier.size(24.dp)
-                        )
-                    },
-                    label = {
-                        Text(
-                            stringResource(R.string.nav_home),
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 12.sp
-                        )
-                    },
-                    selected = true,
-                    onClick = {},
-                    colors = NavigationBarItemDefaults.colors(
-                        selectedIconColor = PrimaryBlue,
-                        selectedTextColor = PrimaryBlue,
-                        indicatorColor = PrimaryBlue.copy(alpha = 0.1f),
-                        unselectedIconColor = TextGray,
-                        unselectedTextColor = TextGray
-                    )
-                )
-                NavigationBarItem(
-                    icon = {
-                        Icon(
-                            Icons.Outlined.History,
-                            contentDescription = null,
-                            modifier = Modifier.size(24.dp)
-                        )
-                    },
-                    label = {
-                        Text(
-                            stringResource(R.string.nav_history),
-                            fontWeight = FontWeight.Medium,
-                            fontSize = 12.sp
-                        )
-                    },
-                    selected = false,
-                    onClick = onHistoryClick,
-                    colors = NavigationBarItemDefaults.colors(
-                        unselectedIconColor = TextGray,
-                        unselectedTextColor = TextGray
-                    )
-                )
-                NavigationBarItem(
-                    icon = {
-                        Icon(
-                            Icons.Outlined.PersonOutline,
-                            contentDescription = null,
-                            modifier = Modifier.size(24.dp)
-                        )
-                    },
-                    label = {
-                        Text(
-                            stringResource(R.string.nav_profile),
-                            fontWeight = FontWeight.Medium,
-                            fontSize = 12.sp
-                        )
-                    },
-                    selected = false,
-                    onClick = onProfileClick,
-                    colors = NavigationBarItemDefaults.colors(
-                        unselectedIconColor = TextGray,
-                        unselectedTextColor = TextGray
-                    )
-                )
-                NavigationBarItem(
-                    icon = {
-                        Icon(
-                            Icons.AutoMirrored.Filled.HelpOutline,
-                            contentDescription = null,
-                            modifier = Modifier.size(24.dp)
-                        )
-                    },
-                    label = {
-                        Text(
-                            stringResource(R.string.nav_help),
-                            fontWeight = FontWeight.Medium,
-                            fontSize = 12.sp
-                        )
-                    },
-                    selected = false,
-                    onClick = onHelpClick,
-                    colors = NavigationBarItemDefaults.colors(
-                        unselectedIconColor = TextGray,
-                        unselectedTextColor = TextGray
-                    )
-                )
-            }
-        }
-    }
-}

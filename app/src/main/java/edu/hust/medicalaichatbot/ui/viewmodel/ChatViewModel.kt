@@ -19,6 +19,8 @@ class ChatViewModel(
     private val _currentThreadId = MutableStateFlow<String?>(null)
     val currentThreadId = _currentThreadId.asStateFlow()
 
+    private val _userId = MutableStateFlow<String>("guest")
+
     private val _isLoading = MutableStateFlow(false)
     val isLoading = _isLoading.asStateFlow()
 
@@ -34,13 +36,17 @@ class ChatViewModel(
         _currentThreadId.value = threadId
     }
 
+    fun setUserId(userId: String) {
+        _userId.value = userId
+    }
+
     fun sendMessage(text: String) {
         val threadId = _currentThreadId.value ?: return
         if (text.isBlank()) return
 
         viewModelScope.launch {
             _isLoading.value = true
-            sendMessageUseCase(threadId, text)
+            sendMessageUseCase(threadId, text, _userId.value)
             _isLoading.value = false
         }
     }

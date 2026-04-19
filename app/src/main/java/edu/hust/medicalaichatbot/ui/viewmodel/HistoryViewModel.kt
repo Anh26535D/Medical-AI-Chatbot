@@ -11,12 +11,20 @@ class HistoryViewModel(
     private val getThreadsUseCase: GetThreadsUseCase
 ) : ViewModel() {
 
-    val threads: StateFlow<List<ChatThread>> = getThreadsUseCase()
+    private val _userId = MutableStateFlow<String>("guest")
+
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+    val threads: StateFlow<List<ChatThread>> = _userId
+        .flatMapLatest { userId -> getThreadsUseCase(userId) }
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),
             initialValue = emptyList()
         )
+
+    fun setUserId(userId: String) {
+        _userId.value = userId
+    }
 
     class Factory(
         private val getThreadsUseCase: GetThreadsUseCase

@@ -38,6 +38,14 @@ class AuthViewModel(private val repository: AuthRepository) : ViewModel() {
         }
     }
 
+    fun loginAsGuest() {
+        _authState.value = AuthState.Guest
+    }
+
+    fun logout() {
+        _authState.value = AuthState.Idle
+    }
+
     fun resetState() {
         _authState.value = AuthState.Idle
     }
@@ -56,6 +64,7 @@ class AuthViewModel(private val repository: AuthRepository) : ViewModel() {
 sealed class AuthState {
     object Idle : AuthState()
     object Loading : AuthState()
+    object Guest : AuthState()
     data class Success(val user: User) : AuthState()
     data class Error(val message: String) : AuthState()
 }
