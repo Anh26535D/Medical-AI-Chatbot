@@ -5,20 +5,18 @@ import com.google.firebase.ai.type.Content
 import com.google.firebase.ai.type.GenerateContentResponse
 import com.google.firebase.ai.type.content
 import android.util.Log
+import edu.hust.medicalaichatbot.utils.Constants
 import edu.hust.medicalaichatbot.utils.Def
 
 import edu.hust.medicalaichatbot.BuildConfig
 
 class MedicalChatManager(
     private val model: GenerativeModel,
-    initialHistory: List<Content> = emptyList(),
-    private val systemPrompt: String? = BuildConfig.SYSTEM_PROMPT
+    initialHistory: List<Content> = emptyList()
 ) {
     private val TAG = Def.tagOf("ChatManager")
     private val _history = initialHistory.toMutableList()
     val history: List<Content> get() = _history
-
-    private val systemContent: Content? = null
 
     fun shouldCompress(): Boolean {
         val totalChars = _history.sumOf { content -> 
@@ -29,12 +27,11 @@ class MedicalChatManager(
 
     suspend fun requestMedicalSummary(triageTag: String? = null): String? {
         val triageInfo = if (triageTag != null) "Triage Level: $triageTag\n" else ""
-        val summaryPrompt = content(role = "user") {
-            text(BuildConfig.SUMMARY_PROMPT.replace("\$triageInfo", triageInfo))
+        val summaryPrompt = content(role = Constants.ROLE_USER) {
+            text(String.format(BuildConfig.SUMMARY_PROMPT, triageInfo))
         }
 
         val requestList = mutableListOf<Content>()
-        systemContent?.let { requestList.add(it) }
         requestList.addAll(_history)
         requestList.add(summaryPrompt)
 
@@ -49,7 +46,7 @@ class MedicalChatManager(
     }
 
     suspend fun extractSymptomCache(): String? {
-        val cachePrompt = content(role = "user") {
+        val cachePrompt = content(role = Constants.ROLE_USER) {
             text(BuildConfig.SYMPTOM_CACHE_PROMPT)
         }
 
@@ -76,40 +73,37 @@ class MedicalChatManager(
         nearbyPlaces: String? = null,
         symptomCache: String? = null
     ): GenerateContentResponse {
-        val userContent = content(role = "user") { text(prompt) }
+        val userContent = content(role = Constants.ROLE_USER) { text(prompt) }
         _history.add(userContent)
 
         val requestList = mutableListOf<Content>()
         
-        // 1. System Prompt
-        systemContent?.let { requestList.add(it) }
-        
-        // 2. Location Info
+        // 1. Location Info
         nearbyPlaces?.let {
-            requestList.add(content(role = "user") { 
+            requestList.add(content(role = Constants.ROLE_USER) { 
                 text(BuildConfig.CONTEXT_LOCATION.format(it)) 
             })
-            requestList.add(content(role = "model") { 
+            requestList.add(content(role = Constants.ROLE_MODEL) { 
                 text("Tôi đã ghi nhận các địa điểm y tế gần bạn.") 
             })
         }
 
         // 3. Symptom Cache (Thông tin đã biết)
         symptomCache?.let {
-            requestList.add(content(role = "user") {
+            requestList.add(content(role = Constants.ROLE_USER) {
                 text(BuildConfig.CONTEXT_SYMPTOMS.format(it))
             })
-            requestList.add(content(role = "model") {
+            requestList.add(content(role = Constants.ROLE_MODEL) {
                 text("Đã ghi nhớ các triệu chứng đã biết. Tôi sẽ không hỏi lặp lại.")
             })
         }
 
         // 4. Medical Summary
         currentSummary?.let { 
-            requestList.add(content(role = "user") { 
+            requestList.add(content(role = Constants.ROLE_USER) { 
                 text(BuildConfig.CONTEXT_SUMMARY.format(it))
             })
-            requestList.add(content(role = "model") { 
+            requestList.add(content(role = Constants.ROLE_MODEL) { 
                 text("Đã hiểu bệnh sử.") 
             })
         }
@@ -120,7 +114,7 @@ class MedicalChatManager(
         try {
             val response = model.generateContent(requestList)
             response.text?.let { responseText ->
-                _history.add(content(role = "model") { text(responseText) })
+                _history.add(content(role = Constants.ROLE_MODEL) { text(responseText) })
             }
             return response
         } catch (e: Exception) {

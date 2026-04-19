@@ -1,7 +1,6 @@
 package edu.hust.medicalaichatbot.ui.screens
 
 import android.content.Intent
-import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -13,7 +12,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -27,7 +25,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.HelpOutline
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.CalendarMonth
-import androidx.compose.material.icons.filled.HelpOutline
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.LocalPharmacy
@@ -69,6 +66,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.net.toUri
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.paging.compose.LazyPagingItems
 import androidx.paging.compose.collectAsLazyPagingItems
@@ -225,7 +223,7 @@ fun ChatSection(
         ) { index ->
             val message = messages[index]
             if (message != null) {
-                if (message.role == MessageRole.ASSISTANT || message.role == MessageRole.ERROR) {
+                if (message.role == MessageRole.MODEL || message.role == MessageRole.ERROR) {
                     AiMessage(text = message.content, timestamp = message.timestamp)
                 } else {
                     UserMessage(text = message.content, timestamp = message.timestamp)
@@ -392,7 +390,7 @@ fun TriageActionButtons(tag: TriageTag) {
             TriageTag.RED -> {
                 Button(
                     onClick = {
-                        val intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:115"))
+                        val intent = Intent(Intent.ACTION_DIAL, "tel:115".toUri())
                         context.startActivity(intent)
                     },
                     modifier = Modifier.fillMaxWidth(),
@@ -405,7 +403,7 @@ fun TriageActionButtons(tag: TriageTag) {
                 }
                 OutlinedButton(
                     onClick = {
-                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse("geo:0,0?q=bệnh viện gần nhất"))
+                        val intent = Intent(Intent.ACTION_VIEW, "geo:0,0?q=bệnh viện gần nhất".toUri())
                         intent.setPackage("com.google.android.apps.maps")
                         context.startActivity(intent)
                     },
@@ -439,7 +437,7 @@ fun TriageActionButtons(tag: TriageTag) {
             TriageTag.YELLOW -> {
                 Button(
                     onClick = {
-                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse("geo:0,0?q=nhà thuốc gần nhất"))
+                        val intent = Intent(Intent.ACTION_VIEW, "geo:0,0?q=nhà thuốc gần nhất".toUri())
                         intent.setPackage("com.google.android.apps.maps")
                         context.startActivity(intent)
                     },

@@ -19,6 +19,7 @@ import edu.hust.medicalaichatbot.domain.model.ChatMessage
 import edu.hust.medicalaichatbot.domain.model.ChatThread
 import edu.hust.medicalaichatbot.domain.model.MessageRole
 import edu.hust.medicalaichatbot.domain.repository.ChatRepository
+import edu.hust.medicalaichatbot.utils.Constants
 import edu.hust.medicalaichatbot.utils.Def
 import edu.hust.medicalaichatbot.utils.LlmParser
 import kotlinx.coroutines.Dispatchers
@@ -118,7 +119,7 @@ class ChatRepositoryImpl(
 
             // 3. Chuyển đổi history
             val historyContent = history.map { 
-                content(role = if (it.role == MessageRole.USER) "user" else "model") { text(it.content) }
+                content(role = if (it.role == MessageRole.USER) Constants.ROLE_USER else Constants.ROLE_MODEL) { text(it.content) }
             }
 
             val chatManager = MedicalChatManager(generativeModel, historyContent.takeLast(12))

@@ -24,4 +24,8 @@ object Constants {
 
     // Default Selection
     const val DEFAULT_MODEL = MODEL_GEMINI_2_5_FLASH_LITE
+
+    // Chat Roles
+    const val ROLE_USER = "user"
+    const val ROLE_MODEL = "model"
 }

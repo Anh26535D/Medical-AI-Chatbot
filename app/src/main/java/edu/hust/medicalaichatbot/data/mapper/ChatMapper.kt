@@ -5,6 +5,7 @@ import edu.hust.medicalaichatbot.data.local.entity.ChatThread as ChatThreadEntit
 import edu.hust.medicalaichatbot.domain.model.ChatMessage
 import edu.hust.medicalaichatbot.domain.model.ChatThread
 import edu.hust.medicalaichatbot.domain.model.MessageRole
+import edu.hust.medicalaichatbot.utils.Constants
 
 fun ChatMessageEntity.toDomain(): ChatMessage {
     return ChatMessage(
@@ -12,8 +13,8 @@ fun ChatMessageEntity.toDomain(): ChatMessage {
         threadId = threadOwnerId,
         content = content,
         role = when (role) {
-            "user" -> MessageRole.USER
-            "assistant" -> MessageRole.ASSISTANT
+            Constants.ROLE_USER -> MessageRole.USER
+            Constants.ROLE_MODEL -> MessageRole.MODEL
             else -> MessageRole.ERROR
         },
         timestamp = timestamp,
@@ -26,7 +27,7 @@ fun ChatMessage.toEntity(): ChatMessageEntity {
         messageId = id,
         threadOwnerId = threadId,
         content = content,
-        role = role.name.lowercase(),
+        role = role.value,
         timestamp = timestamp,
         status = status
     )

@@ -1,7 +1,9 @@
 package edu.hust.medicalaichatbot.domain.model
 
-enum class MessageRole {
-    USER, ASSISTANT, ERROR
+enum class MessageRole(val value: String) {
+    USER("user"), 
+    MODEL("model"), 
+    ERROR("error")
 }
 
 enum class TriageTag(val level: Int) {
