@@ -9,7 +9,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     # Only run if the tag was pushed on the master branch
-    if: github.ref_name == 'master' || startsWith(github.ref, 'refs/tags/v')
+    if: startsWith(github.ref, 'refs/tags/v')
 
     steps:
       - uses: actions/checkout@v4
@@ -32,7 +32,7 @@ jobs:
       # Decode google-services.json from Base64 Secret
       - name: Decode google-services.json
         run: echo "${{ secrets.GOOGLE_SERVICES_JSON_BASE64 }}" | base64 --decode > app/google-services.json
-        if: ${{ secrets.GOOGLE_SERVICES_JSON_BASE64 }}
+        if: secrets.GOOGLE_SERVICES_JSON_BASE64 != ''
 
       # Decode Keystore to the root directory
       - name: Decode Keystore
