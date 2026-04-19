@@ -1,0 +1,60 @@
+name: Android Build & Deploy
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    # Only run if the tag was pushed on the master branch
+    if: github.ref_name == 'master' || startsWith(github.ref, 'refs/tags/v')
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: gradle
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      # Recreate prompts.txt from GitHub Secret
+      - name: Recreate prompts.txt
+        run: |
+          echo "${{ secrets.APP_PROMPTS_CONTENT }}" > app/prompts.txt
+
+      # Decode google-services.json from Base64 Secret
+      - name: Decode google-services.json
+        run: echo "${{ secrets.GOOGLE_SERVICES_JSON_BASE64 }}" | base64 --decode > app/google-services.json
+        if: "${{ secrets.GOOGLE_SERVICES_JSON_BASE64 != '' }}"
+
+      # Decode Keystore to the root directory
+      - name: Decode Keystore
+        run: echo "${{ secrets.RELEASE_KEYSTORE_BASE64 }}" | base64 --decode > release.keystore
+
+      - name: Build with Gradle
+        run: ./gradlew assembleRelease
+        env:
+          KEYSTORE_PATH: ../release.keystore
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+
+      # Decode Firebase Service Account Key from Base64
+      - name: Decode Firebase Service Account Key
+        run: echo "${{ secrets.CREDENTIAL_FILE_CONTENT_BASE64 }}" | base64 --decode > firebase-auth.json
+
+      # Upload the release APK to Firebase App Distribution
+      - name: Upload to Firebase App Distribution
+        uses: wzieba/Firebase-Distribution-Github-Action@v1
+        with:
+          appId: ${{ secrets.FIREBASE_APP_ID }}
+          serviceCredentialsFile: firebase-auth.json
+          groups: testers
+          file: app/build/outputs/apk/release/app-release.apk

@@ -9,6 +9,59 @@ plugins {
     alias(libs.plugins.compose.compiler)
 }
 
+// Load local.properties for local development
+val localProperties = Properties()
+val localPropertiesFile = project.rootProject.file("local.properties")
+if (localPropertiesFile.exists()) {
+    localProperties.load(localPropertiesFile.inputStream())
+}
+
+/**
+ * Gets a secret from environment variables first, then local.properties.
+ * Returns a quoted and escaped string for use in buildConfigField.
+ */
+fun getSecret(key: String, defaultValue: String = ""): String {
+    val value = System.getenv(key) ?: localProperties.getProperty(key) ?: defaultValue
+    return "\"${value.replace("\"", "\\\"").replace("\n", "\\n")}\""
+}
+
+/**
+ * Loads prompts from prompts.txt file.
+ */
+fun loadPrompts(): Map<String, String> {
+    val promptsFile = project.file("prompts.txt")
+    if (!promptsFile.exists()) return emptyMap()
+
+    val map = mutableMapOf<String, String>()
+    var currentKey = ""
+    val currentContent = StringBuilder()
+
+    promptsFile.readLines().forEach { line ->
+        if (line.startsWith("[") && line.endsWith("]")) {
+            if (currentKey.isNotEmpty()) {
+                map[currentKey] = currentContent.toString().trim()
+            }
+            currentKey = line.substring(1, line.length - 1)
+            currentContent.setLength(0)
+        } else {
+            currentContent.append(line).append("\n")
+        }
+    }
+    if (currentKey.isNotEmpty()) {
+        map[currentKey] = currentContent.toString().trim()
+    }
+    return map
+}
+
+val promptsMap = loadPrompts()
+fun getPrompt(key: String, default: String = ""): String {
+    val value = promptsMap[key] ?: default
+    return "\"${value.replace("\"", "\\\"").replace("\n", "\\n")}\""
+}
+
+val appVersionCode = 1
+val appVersionName = "1.0.0-alpha.1"
+
 android {
     namespace = "edu.hust.medicalaichatbot"
     compileSdk = 36
@@ -17,8 +70,8 @@ android {
         applicationId = "edu.hust.medicalaichatbot"
         minSdk = 34
         targetSdk = 36
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = appVersionCode
+        versionName = appVersionName
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -39,54 +92,45 @@ android {
         buildConfig = true
     }
 
+    signingConfigs {
+        create("release") {
+            val keystorePath = System.getenv("KEYSTORE_PATH")
+            if (keystorePath != null) {
+                storeFile = file(keystorePath)
+                storePassword = System.getenv("KEYSTORE_PASSWORD")
+                keyAlias = System.getenv("KEY_ALIAS")
+                keyPassword = System.getenv("KEY_PASSWORD")
+            } else {
+                // Fallback for local development if environment variables are not set
+                storeFile = file("release.keystore")
+            }
+        }
+    }
+
     buildTypes {
         debug {
-            val properties = Properties()
-            val propertiesFile = project.rootProject.file("local.properties")
-            if (propertiesFile.exists()) {
-                val input = propertiesFile.inputStream()
-                properties.load(input)
-                input.close()
-            }
-
-            fun getProp(key: String, envName: String, default: String = ""): String {
-                val value = properties.getProperty(key) ?: System.getenv(envName) ?: default
-                return "\"${value.replace("\"", "\\\"").replace("\n", "\\n")}\""
-            }
-
-            buildConfigField("String", "SYSTEM_PROMPT", getProp("AI_SYSTEM_PROMPT", "AI_SYSTEM_PROMPT"))
-            buildConfigField("String", "SUMMARY_PROMPT", getProp("AI_SUMMARY_PROMPT", "AI_SUMMARY_PROMPT"))
-            buildConfigField("String", "SYMPTOM_CACHE_PROMPT", getProp("AI_SYMPTOM_CACHE_PROMPT", "AI_SYMPTOM_CACHE_PROMPT"))
-            buildConfigField("String", "CONTEXT_LOCATION", getProp("AI_CONTEXT_LOCATION", "AI_CONTEXT_LOCATION", "Dưới đây là danh sách các cơ sở y tế/nhà thuốc gần vị trí của tôi nhất: %s"))
-            buildConfigField("String", "CONTEXT_SYMPTOMS", getProp("AI_CONTEXT_SYMPTOMS", "AI_CONTEXT_SYMPTOMS", "Các thông tin triệu chứng đã thu thập được: %s. KHÔNG hỏi lại những thông tin này nếu đã rõ ràng."))
-            buildConfigField("String", "CONTEXT_SUMMARY", getProp("AI_CONTEXT_SUMMARY", "AI_CONTEXT_SUMMARY", "Tóm tắt bệnh sử trước đó: %s"))
+            buildConfigField("String", "SYSTEM_PROMPT", getPrompt("SYSTEM_PROMPT"))
+            buildConfigField("String", "SUMMARY_PROMPT", getPrompt("SUMMARY_PROMPT"))
+            buildConfigField("String", "SYMPTOM_CACHE_PROMPT", getPrompt("SYMPTOM_CACHE_PROMPT"))
+            buildConfigField("String", "CONTEXT_LOCATION", getPrompt("CONTEXT_LOCATION", "Dưới đây là danh sách các cơ sở y tế/nhà thuốc gần vị trí của tôi nhất: %s"))
+            buildConfigField("String", "CONTEXT_SYMPTOMS", getPrompt("CONTEXT_SYMPTOMS", "Các thông tin triệu chứng đã thu thập được: %s. KHÔNG hỏi lại những thông tin này nếu đã rõ ràng."))
+            buildConfigField("String", "CONTEXT_SUMMARY", getPrompt("CONTEXT_SUMMARY", "Tóm tắt bệnh sử trước đó: %s"))
         }
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
+            signingConfig = signingConfigs.getByName("release")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
             
-            val properties = Properties()
-            val propertiesFile = project.rootProject.file("local.properties")
-            if (propertiesFile.exists()) {
-                val input = propertiesFile.inputStream()
-                properties.load(input)
-                input.close()
-            }
-
-            fun getProp(key: String, envName: String, default: String = ""): String {
-                val value = properties.getProperty(key) ?: System.getenv(envName) ?: default
-                return "\"${value.replace("\"", "\\\"").replace("\n", "\\n")}\""
-            }
-
-            buildConfigField("String", "SYSTEM_PROMPT", getProp("AI_SYSTEM_PROMPT", "AI_SYSTEM_PROMPT"))
-            buildConfigField("String", "SUMMARY_PROMPT", getProp("AI_SUMMARY_PROMPT", "AI_SUMMARY_PROMPT"))
-            buildConfigField("String", "SYMPTOM_CACHE_PROMPT", getProp("AI_SYMPTOM_CACHE_PROMPT", "AI_SYMPTOM_CACHE_PROMPT"))
-            buildConfigField("String", "CONTEXT_LOCATION", getProp("AI_CONTEXT_LOCATION", "AI_CONTEXT_LOCATION"))
-            buildConfigField("String", "CONTEXT_SYMPTOMS", getProp("AI_CONTEXT_SYMPTOMS", "AI_CONTEXT_SYMPTOMS"))
-            buildConfigField("String", "CONTEXT_SUMMARY", getProp("AI_CONTEXT_SUMMARY", "AI_CONTEXT_SUMMARY"))
+            buildConfigField("String", "SYSTEM_PROMPT", getPrompt("SYSTEM_PROMPT"))
+            buildConfigField("String", "SUMMARY_PROMPT", getPrompt("SUMMARY_PROMPT"))
+            buildConfigField("String", "SYMPTOM_CACHE_PROMPT", getPrompt("SYMPTOM_CACHE_PROMPT"))
+            buildConfigField("String", "CONTEXT_LOCATION", getPrompt("CONTEXT_LOCATION"))
+            buildConfigField("String", "CONTEXT_SYMPTOMS", getPrompt("CONTEXT_SYMPTOMS"))
+            buildConfigField("String", "CONTEXT_SUMMARY", getPrompt("CONTEXT_SUMMARY"))
         }
     }
 }

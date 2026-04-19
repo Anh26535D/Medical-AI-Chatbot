@@ -1,21 +1,27 @@
-# Add project specific ProGuard rules here.
-# You can control the set of applied configuration files using the
-# proguardFiles setting in build.gradle.
-#
-# For more details, see
-#   http://developer.android.com/guide/developing/tools/proguard.html
+# Project specific ProGuard rules
 
-# If your project uses WebView with JS, uncomment the following
-# and specify the fully qualified class name to the JavaScript interface
-# class:
-#-keepclassmembers class fqcn.of.javascript.interface.for.webview {
-#   public *;
-#}
+# 1. Enable optimizations and stronger obfuscation
+-optimizationpasses 5
+-allowaccessmodification
 
-# Uncomment this to preserve the line number information for
-# debugging stack traces.
-#-keepattributes SourceFile,LineNumberTable
+# 2. Obfuscate BuildConfig class
+# By default, the Android Gradle Plugin keeps BuildConfig.
+# We allow ProGuard to rename the class and its fields to hide AI prompts.
+-repackageclasses ''
+-allowaccessmodification
+-keepattributes SourceFile,LineNumberTable
 
-# If you keep the line number information, uncomment this to
-# hide the original source file name.
-#-renamesourcefileattribute SourceFile
+# Allow obfuscating fields in BuildConfig (includes AI Prompts)
+-keep class edu.hust.medicalaichatbot.BuildConfig {
+    # We don't use a full -keep here so R8 can rename fields like SYSTEM_PROMPT to 'a', 'b', etc.
+}
+
+# 3. Protect Room Database or model classes if necessary
+-keepclassmembers class * extends androidx.room.RoomDatabase {
+    <init>(...);
+}
+
+# Keep important attributes
+-keepattributes *Annotation*
+-keepattributes Signature
+-keepattributes InnerClasses
