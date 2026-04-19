@@ -25,7 +25,7 @@ class SendMessageUseCase(private val repository: ChatRepository) {
             val assistantMessage = ChatMessage(
                 threadId = threadId,
                 content = aiText,
-                role = MessageRole.ASSISTANT,
+                role = MessageRole.MODEL,
                 timestamp = System.currentTimeMillis(),
                 status = "sent"
             )
