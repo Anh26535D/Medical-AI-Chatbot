@@ -60,7 +60,7 @@ fun getPrompt(key: String, default: String = ""): String {
 }
 
 val appVersionCode = 1
-val appVersionName = "0.0.2-alpha.1"
+val appVersionName = "0.0.3-alpha.1"
 
 android {
     namespace = "edu.hust.medicalaichatbot"
