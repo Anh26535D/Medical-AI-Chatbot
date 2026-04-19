@@ -41,7 +41,7 @@ fun LoginScreen(
     val authState by viewModel.authState.collectAsState()
 
     LaunchedEffect(authState) {
-        if (authState is AuthState.Success) {
+        if (authState is AuthState.Success || authState is AuthState.Guest) {
             onLoginSuccess()
             viewModel.resetState()
         }
@@ -51,7 +51,9 @@ fun LoginScreen(
         authState = authState,
         onLogin = { phone, pass -> viewModel.login(phone, pass) },
         onResetState = { viewModel.resetState() },
-        onSkipLogin = onSkipLogin,
+        onSkipLogin = {
+            viewModel.loginAsGuest()
+        },
         onRegisterClick = onRegisterClick
     )
 }
@@ -217,19 +219,27 @@ fun LoginContent(
                         singleLine = true
                     )
 
+                    Spacer(modifier = Modifier.height(4.dp))
+
                     // Fixed space for error message to prevent layout shift
-                    Text(
-                        text = if (authState is AuthState.Error) authState.message else "",
-                        color = Color.Red,
-                        fontSize = 12.sp,
+                    Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(top = 4.dp, start = 8.dp)
-                            .height(12.dp) // Fixed height to prevent layout jump
-                    )
+                            .height(20.dp),
+                        contentAlignment = Alignment.CenterStart
+                    ) {
+                        if (authState is AuthState.Error) {
+                            Text(
+                                text = authState.message,
+                                color = Color.Red,
+                                fontSize = 12.sp,
+                                modifier = Modifier.padding(start = 8.dp)
+                            )
+                        }
+                    }
                 }
 
-                Spacer(modifier = Modifier.height(20.dp))
+                Spacer(modifier = Modifier.height(4.dp))
 
                 // Action Buttons
                 Button(
