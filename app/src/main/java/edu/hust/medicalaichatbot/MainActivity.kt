@@ -4,11 +4,27 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.consumeWindowInsets
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.isImeVisible
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import edu.hust.medicalaichatbot.data.local.AppDatabase
 import edu.hust.medicalaichatbot.data.repository.AuthRepository
@@ -16,16 +32,22 @@ import edu.hust.medicalaichatbot.data.repository.ChatRepositoryImpl
 import edu.hust.medicalaichatbot.domain.usecase.chat.GetMessagesUseCase
 import edu.hust.medicalaichatbot.domain.usecase.chat.GetThreadsUseCase
 import edu.hust.medicalaichatbot.domain.usecase.chat.SendMessageUseCase
+import edu.hust.medicalaichatbot.ui.components.CommonTopBar
+import edu.hust.medicalaichatbot.ui.components.MainBottomNavigation
+import edu.hust.medicalaichatbot.ui.components.MessageInput
+import edu.hust.medicalaichatbot.ui.screens.AccountSettingsScreen
+import edu.hust.medicalaichatbot.ui.screens.HelpScreen
 import edu.hust.medicalaichatbot.ui.screens.HistoryScreen
 import edu.hust.medicalaichatbot.ui.screens.HomeScreen
 import edu.hust.medicalaichatbot.ui.screens.LoginScreen
+import edu.hust.medicalaichatbot.ui.screens.MedicalSummaryScreen
 import edu.hust.medicalaichatbot.ui.screens.OnboardingScreen
 import edu.hust.medicalaichatbot.ui.screens.ProfileScreen
-import edu.hust.medicalaichatbot.ui.screens.HelpScreen
 import edu.hust.medicalaichatbot.ui.screens.RegisterScreen
 import edu.hust.medicalaichatbot.ui.screens.SplashScreen
-import edu.hust.medicalaichatbot.ui.screens.MedicalSummaryScreen
+import edu.hust.medicalaichatbot.ui.theme.BackgroundGray
 import edu.hust.medicalaichatbot.ui.theme.MedicalAIChatbotTheme
+import edu.hust.medicalaichatbot.ui.viewmodel.AuthState
 import edu.hust.medicalaichatbot.ui.viewmodel.AuthViewModel
 import edu.hust.medicalaichatbot.ui.viewmodel.ChatViewModel
 import edu.hust.medicalaichatbot.ui.viewmodel.HistoryViewModel
@@ -40,7 +62,7 @@ class MainActivity : ComponentActivity() {
                 val context = LocalContext.current
                 val database = AppDatabase.getDatabase(context)
                 
-                val authRepository = AuthRepository(database.userDao())
+                val authRepository = AuthRepository(database.userDao(), database.chatDao())
                 val authViewModel: AuthViewModel = viewModel(
                     factory = AuthViewModel.Factory(authRepository)
                 )
@@ -69,6 +91,7 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun MedicalApp(
     authViewModel: AuthViewModel, 
@@ -76,91 +99,167 @@ fun MedicalApp(
     historyViewModel: HistoryViewModel
 ) {
     val navController = rememberNavController()
-    
-    NavHost(navController = navController, startDestination = "splash") {
-        composable("splash") {
-            SplashScreen(onTimeout = {
-                navController.navigate("onboarding") {
-                    popUpTo("splash") { inclusive = true }
+    val authState by authViewModel.authState.collectAsState()
+    val navBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = navBackStackEntry?.destination?.route
+    val isImeVisible = WindowInsets.isImeVisible
+
+    val showBars = currentRoute in listOf("home", "history", "profile", "help")
+
+    androidx.compose.runtime.LaunchedEffect(authState) {
+        when (authState) {
+            is AuthState.Success -> {
+                val userId = (authState as AuthState.Success).user.phoneNumber
+                chatViewModel.setUserId(userId)
+                historyViewModel.setUserId(userId)
+            }
+
+            is AuthState.Guest -> {
+                chatViewModel.setUserId("guest")
+                historyViewModel.setUserId("guest")
+            }
+
+            else -> {
+                chatViewModel.setUserId("guest")
+                historyViewModel.setUserId("guest")
+            }
+        }
+    }
+
+    Scaffold(
+        topBar = {
+            if (showBars) {
+                val title = when (currentRoute) {
+                    "history" -> stringResource(R.string.history_title)
+                    "profile" -> "Hồ sơ sức khỏe"
+                    "help" -> "Trung tâm hỗ trợ"
+                    else -> null
                 }
-            })
-        }
-        composable("onboarding") {
-            OnboardingScreen(onFinish = {
-                navController.navigate("login") {
-                    popUpTo("onboarding") { inclusive = true }
-                }
-            })
-        }
-        composable("login") {
-            LoginScreen(
-                viewModel = authViewModel,
-                onLoginSuccess = { navController.navigate("home") },
-                onSkipLogin = { navController.navigate("home") },
-                onRegisterClick = { navController.navigate("register") }
-            )
-        }
-        composable("register") {
-            RegisterScreen(
-                viewModel = authViewModel,
-                onBackClick = { navController.popBackStack() },
-                onRegisterSuccess = { 
-                    navController.navigate("home") {
-                        popUpTo("register") { inclusive = true }
+                CommonTopBar(
+                    title = title,
+                    onProfileClick = { navController.navigate("account_settings") }
+                )
+            }
+        },
+        bottomBar = {
+            if (showBars) {
+                Column(modifier = Modifier.imePadding()) {
+                    if (currentRoute == "home") {
+                        MessageInput(onSendMessage = { chatViewModel.sendMessage(it) })
+                        androidx.compose.material3.HorizontalDivider(
+                            color = edu.hust.medicalaichatbot.ui.theme.SurfaceGray.copy(alpha = 0.5f),
+                            thickness = 0.5.dp
+                        )
                     }
-                },
-                onLoginClick = { navController.navigate("login") }
-            )
-        }
-        composable("home") {
-            HomeScreen(
-                chatViewModel = chatViewModel,
-                onHistoryClick = { navController.navigate("history") },
-                onProfileClick = { navController.navigate("profile") },
-                onHelpClick = { navController.navigate("help") }
-            )
-        }
-        composable("history") {
-            HistoryScreen(
-                viewModel = historyViewModel,
-                onHomeClick = { 
-                    navController.navigate("home") {
-                        popUpTo("home") { inclusive = true }
-                    }
-                },
-                onProfileClick = { navController.navigate("profile") },
-                onHelpClick = { navController.navigate("help") },
-                onThreadClick = { threadId ->
-                    navController.navigate("summary/$threadId")
-                }
-            )
-        }
-        composable("profile") {
-            ProfileScreen(
-                onHomeClick = { navController.navigate("home") },
-                onHistoryClick = { navController.navigate("history") },
-                onHelpClick = { navController.navigate("help") }
-            )
-        }
-        composable("help") {
-            HelpScreen(
-                onHomeClick = { navController.navigate("home") },
-                onHistoryClick = { navController.navigate("history") },
-                onProfileClick = { navController.navigate("profile") }
-            )
-        }
-        composable("summary/{threadId}") { backStackEntry ->
-            val threadId = backStackEntry.arguments?.getString("threadId") ?: return@composable
-            MedicalSummaryScreen(
-                threadId = threadId,
-                viewModel = historyViewModel,
-                onBackClick = { 
-                    chatViewModel.setCurrentThread(threadId)
-                    navController.navigate("home") {
-                        popUpTo("history") { inclusive = false }
+                    if (!isImeVisible) {
+                        MainBottomNavigation(navController = navController)
                     }
                 }
-            )
+            }
+        },
+        containerColor = BackgroundGray
+    ) { paddingValues ->
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+                .consumeWindowInsets(paddingValues)
+        ) {
+            NavHost(
+                navController = navController,
+                startDestination = "splash"
+            ) {
+                composable("splash") {
+                    SplashScreen(onTimeout = {
+                        navController.navigate("onboarding") {
+                            popUpTo("splash") { inclusive = true }
+                        }
+                    })
+                }
+                composable("onboarding") {
+                    OnboardingScreen(onFinish = {
+                        navController.navigate("login") {
+                            popUpTo("onboarding") { inclusive = true }
+                        }
+                    })
+                }
+                composable("login") {
+                    LoginScreen(
+                        viewModel = authViewModel,
+                        onLoginSuccess = { navController.navigate("home") },
+                        onSkipLogin = { navController.navigate("home") },
+                        onRegisterClick = { navController.navigate("register") }
+                    )
+                }
+                composable("register") {
+                    RegisterScreen(
+                        viewModel = authViewModel,
+                        onBackClick = { navController.popBackStack() },
+                        onRegisterSuccess = {
+                            navController.navigate("home") {
+                                popUpTo("register") { inclusive = true }
+                            }
+                        },
+                        onLoginClick = { navController.navigate("login") }
+                    )
+                }
+                composable("home") {
+                    HomeScreen(chatViewModel = chatViewModel)
+                }
+                composable("history") {
+                    HistoryScreen(
+                        viewModel = historyViewModel,
+                        authViewModel = authViewModel,
+                        onThreadClick = { threadId ->
+                            navController.navigate("summary/$threadId")
+                        },
+                        onLoginClick = {
+                            navController.navigate("login")
+                        }
+                    )
+                }
+                composable("profile") {
+                    ProfileScreen(
+                        authViewModel = authViewModel,
+                        onLoginClick = {
+                            navController.navigate("login")
+                        }
+                    )
+                }
+                composable("account_settings") {
+                    AccountSettingsScreen(
+                        authViewModel = authViewModel,
+                        onBackClick = { navController.popBackStack() },
+                        onLogoutSuccess = {
+                            navController.navigate("login") {
+                                popUpTo(0) { inclusive = true }
+                            }
+                        },
+                        onLoginClick = {
+                            navController.navigate("login") {
+                                popUpTo("home") { inclusive = false }
+                            }
+                        }
+                    )
+                }
+                composable("help") {
+                    HelpScreen()
+                }
+                composable("summary/{threadId}") { backStackEntry ->
+                    val threadId =
+                        backStackEntry.arguments?.getString("threadId") ?: return@composable
+                    MedicalSummaryScreen(
+                        threadId = threadId,
+                        viewModel = historyViewModel,
+                        onBackClick = {
+                            chatViewModel.setCurrentThread(threadId)
+                            navController.navigate("home") {
+                                popUpTo("history") { inclusive = false }
+                            }
+                        }
+                    )
+                }
+            }
         }
     }
 }
