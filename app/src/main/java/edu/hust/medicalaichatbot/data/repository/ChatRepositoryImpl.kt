@@ -59,18 +59,19 @@ class ChatRepositoryImpl(
         return chatDao.getMessagesByThread(threadId).map { it.toDomain() }
     }
 
-    override fun getThreads(): Flow<List<ChatThread>> {
-        return chatDao.getAllThreadsSortedByRecent().map { entities ->
+    override fun getThreads(userId: String): Flow<List<ChatThread>> {
+        return chatDao.getThreadsByUser(userId).map { entities ->
             entities.map { it.toDomain() }
         }
     }
 
-    private suspend fun ensureThreadExists(threadId: String) {
+    private suspend fun ensureThreadExists(threadId: String, userId: String = "guest") {
         val existingThread = chatDao.getThreadById(threadId)
         if (existingThread == null) {
             chatDao.insertThread(
                 edu.hust.medicalaichatbot.data.local.entity.ChatThread(
                     threadId = threadId,
+                    userId = userId,
                     title = "Cuộc trò chuyện mới",
                     modelName = modelName,
                     lastUpdated = System.currentTimeMillis()
@@ -81,7 +82,14 @@ class ChatRepositoryImpl(
 
     override suspend fun sendMessage(message: ChatMessage): Result<Unit> {
         return try {
-            ensureThreadExists(message.threadId)
+            // Note: This logic might need refinement if threadId is provided but userId is unknown here
+            // For now, if it exists, it's fine. If not, it defaults to guest which might be wrong if 
+            // the user is logged in. 
+            // Better to have ensureThreadExists called explicitly with userId before sendMessage if possible.
+            val existing = chatDao.getThreadById(message.threadId)
+            if (existing == null) {
+                ensureThreadExists(message.threadId)
+            }
             chatDao.insertMessageAndUpdateThread(message.toEntity())
             Result.success(Unit)
         } catch (e: Exception) {

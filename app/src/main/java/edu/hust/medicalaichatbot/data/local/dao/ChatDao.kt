@@ -8,8 +8,8 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface ChatDao {
-    @Query("SELECT * FROM chat_threads ORDER BY lastUpdated DESC")
-    fun getAllThreadsSortedByRecent(): Flow<List<ChatThread>>
+    @Query("SELECT * FROM chat_threads WHERE userId = :userId ORDER BY lastUpdated DESC")
+    fun getThreadsByUser(userId: String): Flow<List<ChatThread>>
 
     @Query("SELECT * FROM chat_threads WHERE threadId = :threadId")
     suspend fun getThreadById(threadId: String): ChatThread?
@@ -43,4 +43,7 @@ interface ChatDao {
 
     @Query("UPDATE chat_threads SET symptomCache = :cache WHERE threadId = :threadId")
     suspend fun updateThreadSymptomCache(threadId: String, cache: String)
+
+    @Query("UPDATE chat_threads SET userId = :newUserId WHERE userId = :oldUserId")
+    suspend fun migrateGuestData(oldUserId: String, newUserId: String)
 }

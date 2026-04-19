@@ -36,6 +36,7 @@ fun ChatMessage.toEntity(): ChatMessageEntity {
 fun ChatThreadEntity.toDomain(): ChatThread {
     return ChatThread(
         id = threadId,
+        userId = userId,
         title = title,
         lastUpdated = lastUpdated,
         modelName = modelName,
@@ -47,6 +48,7 @@ fun ChatThreadEntity.toDomain(): ChatThread {
 fun ChatThread.toEntity(): ChatThreadEntity {
     return ChatThreadEntity(
         threadId = id,
+        userId = userId,
         title = title,
         lastUpdated = lastUpdated,
         modelName = modelName,

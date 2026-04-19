@@ -5,11 +5,12 @@ import androidx.room.*
 @Entity(tableName = "chat_threads")
 data class ChatThread(
     @PrimaryKey val threadId: String,
+    val userId: String, // "guest" or user phone/id
     val title: String,
     val lastUpdated: Long,
     val modelName: String,
-    val summary: String? = null, // Cột mới để lưu tóm tắt bệnh án
-    val symptomCache: String? = null // Cột mới để lưu cache triệu chứng
+    val summary: String? = null,
+    val symptomCache: String? = null
 )
 
 @Entity(

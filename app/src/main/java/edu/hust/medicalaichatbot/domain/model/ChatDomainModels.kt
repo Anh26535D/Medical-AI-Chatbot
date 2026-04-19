@@ -21,6 +21,7 @@ data class ChatMessage(
 
 data class ChatThread(
     val id: String,
+    val userId: String,
     val title: String,
     val lastUpdated: Long,
     val modelName: String,

@@ -5,7 +5,7 @@ import edu.hust.medicalaichatbot.domain.repository.ChatRepository
 import kotlinx.coroutines.flow.Flow
 
 class GetThreadsUseCase(private val repository: ChatRepository) {
-    operator fun invoke(): Flow<List<ChatThread>> {
-        return repository.getThreads()
+    operator fun invoke(userId: String): Flow<List<ChatThread>> {
+        return repository.getThreads(userId)
     }
 }
