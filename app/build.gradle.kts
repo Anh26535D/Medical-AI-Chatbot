@@ -68,7 +68,7 @@ android {
 
     defaultConfig {
         applicationId = "edu.hust.medicalaichatbot"
-        minSdk = 34
+        minSdk = 27
         targetSdk = 36
         versionCode = appVersionCode
         versionName = appVersionName
