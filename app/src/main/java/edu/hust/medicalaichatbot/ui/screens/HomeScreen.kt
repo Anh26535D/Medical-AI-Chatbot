@@ -3,6 +3,7 @@ package edu.hust.medicalaichatbot.ui.screens
 import android.content.Intent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -71,7 +72,9 @@ import java.util.Locale
 
 @Composable
 fun HomeScreen(
-    chatViewModel: ChatViewModel = viewModel()
+    chatViewModel: ChatViewModel = viewModel(),
+    onSendMessage: (String) -> Unit = { chatViewModel.sendMessage(it) },
+    onQuickReplyClick: (String) -> Unit = {}
 ) {
     val messages = chatViewModel.messages.collectAsLazyPagingItems()
     val isLoading by chatViewModel.isLoading.collectAsState()
@@ -90,6 +93,8 @@ fun HomeScreen(
         ChatSection(
             messages = messages,
             isLoading = isLoading,
+            onSuggestedClick = onSendMessage,
+            onQuickReplyClick = onQuickReplyClick,
             modifier = Modifier.fillMaxSize()
         )
     }
@@ -100,6 +105,8 @@ fun HomeScreen(
 fun ChatSection(
     messages: LazyPagingItems<ChatMessage>,
     isLoading: Boolean,
+    onSuggestedClick: (String) -> Unit = {},
+    onQuickReplyClick: (String) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val listState = rememberLazyListState()
@@ -110,44 +117,102 @@ fun ChatSection(
         }
     }
 
-    LazyColumn(
-        state = listState,
-        modifier = modifier.fillMaxWidth(),
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(20.dp)
-    ) {
-        item {
-            Box(modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp), contentAlignment = Alignment.Center) {
-                val dateString = SimpleDateFormat("dd MMMM", Locale.forLanguageTag("vi")).format(Date())
-                Text(
-                    text = stringResource(R.string.today_label, dateString),
-                    fontSize = 12.sp,
-                    color = TextGray,
-                    modifier = Modifier
-                        .background(Color.White, RoundedCornerShape(12.dp))
-                        .padding(horizontal = 16.dp, vertical = 6.dp)
-                )
+    if (messages.itemCount == 0 && !isLoading) {
+        WelcomeScreen(onSuggestedClick = onSuggestedClick)
+    } else {
+        LazyColumn(
+            state = listState,
+            modifier = modifier.fillMaxWidth(),
+            contentPadding = PaddingValues(16.dp),
+            verticalArrangement = Arrangement.spacedBy(20.dp)
+        ) {
+            item {
+                Box(modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp), contentAlignment = Alignment.Center) {
+                    val dateString = SimpleDateFormat("dd MMMM", Locale.forLanguageTag("vi")).format(Date())
+                    Text(
+                        text = stringResource(R.string.today_label, dateString),
+                        fontSize = 12.sp,
+                        color = TextGray,
+                        modifier = Modifier
+                            .background(Color.White, RoundedCornerShape(12.dp))
+                            .padding(horizontal = 16.dp, vertical = 6.dp)
+                    )
+                }
             }
-        }
 
-        items(
-            count = messages.itemCount,
-            key = messages.itemKey { it.id },
-            contentType = messages.itemContentType { "chat_message" }
-        ) { index ->
-            val message = messages[index]
-            if (message != null) {
-                if (message.role == MessageRole.MODEL || message.role == MessageRole.ERROR) {
-                    AiMessage(text = message.content, timestamp = message.timestamp)
-                } else {
-                    UserMessage(text = message.content, timestamp = message.timestamp)
+            items(
+                count = messages.itemCount,
+                key = messages.itemKey { it.id },
+                contentType = messages.itemContentType { "chat_message" }
+            ) { index ->
+                val message = messages[index]
+                if (message != null) {
+                    if (message.role == MessageRole.MODEL || message.role == MessageRole.ERROR) {
+                        AiMessage(text = message.content, timestamp = message.timestamp)
+                    } else {
+                        UserMessage(text = message.content, timestamp = message.timestamp)
+                    }
+                }
+            }
+
+            // Quick Reply Buttons for the last AI message
+            if (!isLoading && messages.itemCount > 0) {
+                val lastMessage = messages[messages.itemCount - 1]
+                if (lastMessage != null && (lastMessage.role == MessageRole.MODEL)) {
+                    val parsed = LlmParser.parse(lastMessage.content)
+                    if (parsed.extractedQuestions.isNotEmpty()) {
+                        item {
+                            QuickReplyButtons(
+                                questions = parsed.extractedQuestions,
+                                onQuestionClick = onQuickReplyClick
+                            )
+                        }
+                    }
+                }
+            }
+
+            if (isLoading) {
+                item {
+                    AiLoadingIndicator()
                 }
             }
         }
+    }
+}
 
-        if (isLoading) {
-            item {
-                AiLoadingIndicator()
+@Composable
+fun QuickReplyButtons(
+    questions: List<String>,
+    onQuestionClick: (String) -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(start = 48.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        Text(
+            text = "Chọn để trả lời nhanh:",
+            fontSize = 12.sp,
+            color = TextGray,
+            modifier = Modifier.padding(bottom = 4.dp)
+        )
+        questions.forEach { question ->
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onQuestionClick(question) },
+                shape = RoundedCornerShape(12.dp),
+                color = PrimaryBlue.copy(alpha = 0.08f),
+                border = androidx.compose.foundation.BorderStroke(1.dp, PrimaryBlue.copy(alpha = 0.3f))
+            ) {
+                Text(
+                    text = question,
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                    fontSize = 13.sp,
+                    color = PrimaryBlue,
+                    lineHeight = 18.sp
+                )
             }
         }
     }
@@ -418,3 +483,67 @@ fun AiLoadingIndicator() {
     }
 }
 
+@Composable
+fun WelcomeScreen(onSuggestedClick: (String) -> Unit) {
+    val suggestions = listOf(
+        "Tôi bị đau đầu và sốt",
+        "Tôi muốn hỏi về đau bụng",
+        "Tôi cần tư vấn về giấc ngủ",
+        "Tôi muốn kiểm tra triệu chứng"
+    )
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Text(
+            text = "Xin chào!",
+            fontSize = 24.sp,
+            fontWeight = FontWeight.Bold,
+            color = PrimaryBlue
+        )
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Text(
+            text = "Tôi là trợ lý sức khỏe AI.\nBạn đang gặp vấn đề gì?",
+            fontSize = 16.sp,
+            color = TextGray,
+            lineHeight = 24.sp,
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+        )
+
+        Spacer(modifier = Modifier.height(32.dp))
+
+        suggestions.forEach { suggestion ->
+            Surface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 6.dp)
+                    .clickable { onSuggestedClick(suggestion) },
+                shape = RoundedCornerShape(16.dp),
+                color = Color.White,
+                shadowElevation = 1.dp,
+                border = androidx.compose.foundation.BorderStroke(1.dp, SurfaceGray)
+            ) {
+                Text(
+                    text = suggestion,
+                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp),
+                    fontSize = 15.sp,
+                    color = Color.DarkGray
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        Text(
+            text = "Hoặc nhập triệu chứng phía dưới",
+            fontSize = 13.sp,
+            color = TextGray
+        )
+    }
+}

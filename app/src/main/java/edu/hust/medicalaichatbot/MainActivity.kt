@@ -17,6 +17,9 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -105,6 +108,7 @@ fun MedicalApp(
     val isImeVisible = WindowInsets.isImeVisible
 
     val showBars = currentRoute in listOf("home", "history", "profile", "help")
+    var prefillText by remember { mutableStateOf("") }
 
     androidx.compose.runtime.LaunchedEffect(authState) {
         when (authState) {
@@ -145,7 +149,11 @@ fun MedicalApp(
             if (showBars) {
                 Column(modifier = Modifier.imePadding()) {
                     if (currentRoute == "home") {
-                        MessageInput(onSendMessage = { chatViewModel.sendMessage(it) })
+                        MessageInput(
+                            onSendMessage = { chatViewModel.sendMessage(it) },
+                            prefillText = prefillText,
+                            onPrefillConsumed = { prefillText = "" }
+                        )
                         androidx.compose.material3.HorizontalDivider(
                             color = edu.hust.medicalaichatbot.ui.theme.SurfaceGray.copy(alpha = 0.5f),
                             thickness = 0.5.dp
@@ -204,7 +212,11 @@ fun MedicalApp(
                     )
                 }
                 composable("home") {
-                    HomeScreen(chatViewModel = chatViewModel)
+                    HomeScreen(
+                        chatViewModel = chatViewModel,
+                        onSendMessage = { chatViewModel.sendMessage(it) },
+                        onQuickReplyClick = { question -> prefillText = question }
+                    )
                 }
                 composable("history") {
                     HistoryScreen(

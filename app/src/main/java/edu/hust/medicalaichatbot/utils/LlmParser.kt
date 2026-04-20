@@ -7,7 +7,8 @@ data class ParsedLlmResponse(
     val diagnosisGuess: String? = null,
     val symptomsObserved: List<String> = emptyList(),
     val message: String = "",
-    val triageTag: TriageTag? = null
+    val triageTag: TriageTag? = null,
+    val extractedQuestions: List<String> = emptyList()
 )
 
 object LlmParser {
@@ -31,13 +32,45 @@ object LlmParser {
             null
         }
 
+        val extractedQuestions = extractQuestions(message)
+
         return ParsedLlmResponse(
             thought = thought,
             diagnosisGuess = diagnosisGuess,
             symptomsObserved = symptomsObserved,
             message = message,
-            triageTag = triageTag
+            triageTag = triageTag,
+            extractedQuestions = extractedQuestions
         )
+    }
+
+    /**
+     * Extract questions from AI message text.
+     * Detects patterns like: * **Question text?** or - **Question text?**
+     * Also detects standalone question lines ending with ?
+     */
+    fun extractQuestions(text: String): List<String> {
+        val questions = mutableListOf<String>()
+        
+        // Pattern 1: Bold questions in bullet lists like "* **Question?**" or "- **Question?**"
+        val boldQuestionRegex = Regex("""[*\-]\s*\*\*(.+?\?)\*\*""")
+        boldQuestionRegex.findAll(text).forEach { match ->
+            val q = match.groupValues[1].trim()
+            if (q.length > 5) { // Filter very short matches
+                questions.add(q)
+            }
+        }
+        
+        // If no bold questions found, try standalone question lines
+        if (questions.isEmpty()) {
+            text.lines()
+                .map { it.trim() }
+                .filter { it.endsWith("?") && it.length > 10 && !it.startsWith("Để") }
+                .take(4)
+                .forEach { questions.add(it) }
+        }
+        
+        return questions.take(5) // Return max 5 questions
     }
 
     private fun extractTag(text: String, tagName: String): String? {
