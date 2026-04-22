@@ -19,7 +19,7 @@ object LlmParser {
             ?.split(",")
             ?.map { it.trim() }
             ?.filter { it.isNotEmpty() } ?: emptyList()
-        val message = extractTag(text, "message") ?: text // Fallback to full text if no message tag
+        val rawMessage = extractTag(text, "message") ?: text // Fallback to full text if no message tag
         val triageTagString = extractTag(text, "triage_tag")?.uppercase()
         
         val triageTag = try {
@@ -32,45 +32,64 @@ object LlmParser {
             null
         }
 
-        val extractedQuestions = extractQuestions(message)
+        val (cleanMessage, extractedQuestions) = extractQuestionsAndCleanMessage(rawMessage)
 
         return ParsedLlmResponse(
             thought = thought,
             diagnosisGuess = diagnosisGuess,
             symptomsObserved = symptomsObserved,
-            message = message,
+            message = cleanMessage,
             triageTag = triageTag,
             extractedQuestions = extractedQuestions
         )
     }
 
     /**
-     * Extract questions from AI message text.
-     * Detects patterns like: * **Question text?** or - **Question text?**
-     * Also detects standalone question lines ending with ?
+     * Tách các dòng câu hỏi khỏi nội dung chính để hiển thị thành các nút gợi ý,
+     * đồng thời loại bỏ các dòng đó khỏi nội dung chat bubble để tránh lặp lại.
      */
-    fun extractQuestions(text: String): List<String> {
+    private fun extractQuestionsAndCleanMessage(messageText: String): Pair<String, List<String>> {
         val questions = mutableListOf<String>()
+        val remainingLines = mutableListOf<String>()
         
-        // Pattern 1: Bold questions in bullet lists like "* **Question?**" or "- **Question?**"
-        val boldQuestionRegex = Regex("""[*\-]\s*\*\*(.+?\?)\*\*""")
-        boldQuestionRegex.findAll(text).forEach { match ->
-            val q = match.groupValues[1].trim()
-            if (q.length > 5) { // Filter very short matches
+        val lines = messageText.lines()
+        for (line in lines) {
+            val trimmed = line.trim()
+            if ((trimmed.startsWith("*") || trimmed.startsWith("-")) && trimmed.endsWith("?")) {
+                var q = trimmed.removePrefix("*").removePrefix("-").trim()
+                q = q.replace("**", "") // Xóa bold markdown
+                if (q.length > 5) {
+                    questions.add(q)
+                }
+            } else {
+                // Nếu không phải là câu hỏi list gạch đầu dòng, giữ lại ở chat bubble
+                // Loại bỏ cả các câu gợi ý bằng chữ "Hay bạn đang muốn nói điều gì khác?" nếu nó cũng là list
+                if ((trimmed.startsWith("*") || trimmed.startsWith("-")) && trimmed.contains("điều gì khác")) {
+                     var q = trimmed.removePrefix("*").removePrefix("-").trim()
+                     q = q.replace("**", "")
+                     questions.add(q)
+                } else {
+                     remainingLines.add(line)
+                }
+            }
+        }
+
+        // Nếu không tách được list gạch đầu dòng nào, thử quét câu hỏi độc lập cuối cùng
+        if (questions.isEmpty()) {
+            val lastLines = remainingLines.takeLast(2)
+            val standaloneQ = lastLines.find { it.trim().endsWith("?") && it.length > 10 }
+            if (standaloneQ != null) {
+                var q = standaloneQ.trim().replace("**", "")
                 questions.add(q)
+                // Tuỳ chọn: Có thể xoá standaloneQ khỏi remainingLines tại đây, 
+                // nhưng để an toàn thì giữ lại vì nó nằm trong văn xuôi.
             }
         }
         
-        // If no bold questions found, try standalone question lines
-        if (questions.isEmpty()) {
-            text.lines()
-                .map { it.trim() }
-                .filter { it.endsWith("?") && it.length > 10 && !it.startsWith("Để") }
-                .take(4)
-                .forEach { questions.add(it) }
-        }
+        // Dọn dẹp khoảng trắng dư thừa
+        var cleanMessage = remainingLines.joinToString("\n").trim()
         
-        return questions.take(5) // Return max 5 questions
+        return Pair(cleanMessage, questions.take(5))
     }
 
     private fun extractTag(text: String, tagName: String): String? {

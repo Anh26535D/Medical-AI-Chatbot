@@ -23,7 +23,22 @@ class SendMessageUseCase(private val repository: ChatRepository) {
         // if we pass userId to a modified sendMessage or similar.
         
         repository.sendMessage(userMessage)
-        
+
+        // Bắt lỗi Local: Fallback khi text rác, quá ngắn hoặc toàn số/ký tự đặc biệt
+        val trimmedText = text.trim()
+        val hasNoLetters = trimmedText.none { it.isLetter() }
+        if (trimmedText.length <= 2 || hasNoLetters) {
+            val fallbackMessage = ChatMessage(
+                threadId = threadId,
+                content = "<message>Xin lỗi, tôi chưa hiểu rõ vấn đề của bạn. Bạn có thể mô tả cụ thể triệu chứng sức khỏe hoặc tình trạng cơ thể để tôi hỗ trợ chính xác hơn được không?</message>",
+                role = MessageRole.MODEL,
+                timestamp = System.currentTimeMillis(),
+                status = "sent"
+            )
+            repository.sendMessage(fallbackMessage)
+            return Result.success(Unit)
+        }
+
         // Lấy lịch sử chat để làm ngữ cảnh cho AI
         val history = repository.getMessagesList(threadId)
         val responseResult = repository.getAiResponse(text, history)

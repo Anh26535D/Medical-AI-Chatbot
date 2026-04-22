@@ -36,10 +36,14 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -79,6 +83,10 @@ fun HomeScreen(
     val messages = chatViewModel.messages.collectAsLazyPagingItems()
     val isLoading by chatViewModel.isLoading.collectAsState()
     
+    val context = LocalContext.current
+    val sharedPreferences = remember { context.getSharedPreferences("app_prefs", android.content.Context.MODE_PRIVATE) }
+    var showDisclaimer by remember { mutableStateOf(!sharedPreferences.getBoolean("has_accepted_disclaimer", false)) }
+    
     LaunchedEffect(Unit) {
         if (chatViewModel.currentThreadId.value == null) {
             chatViewModel.setCurrentThread("default_thread")
@@ -90,6 +98,45 @@ fun HomeScreen(
             .fillMaxSize()
             .background(BackgroundGray)
     ) {
+        if (showDisclaimer) {
+            AlertDialog(
+                onDismissRequest = { /* Không cho phép ẩn bằng cách click ra ngoài */ },
+                title = {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.Warning, contentDescription = null, tint = Color.Red)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = stringResource(R.string.disclaimer_title),
+                            fontWeight = FontWeight.Bold,
+                            color = PrimaryBlue,
+                            fontSize = 18.sp
+                        )
+                    }
+                },
+                text = {
+                    Text(
+                        text = stringResource(R.string.disclaimer_message),
+                        fontSize = 14.sp,
+                        lineHeight = 20.sp,
+                        color = Color.DarkGray
+                    )
+                },
+                confirmButton = {
+                    Button(
+                        onClick = { 
+                            sharedPreferences.edit().putBoolean("has_accepted_disclaimer", true).apply()
+                            showDisclaimer = false 
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue)
+                    ) {
+                        Text(stringResource(R.string.disclaimer_agree))
+                    }
+                },
+                containerColor = Color.White,
+                shape = RoundedCornerShape(16.dp)
+            )
+        }
+
         ChatSection(
             messages = messages,
             isLoading = isLoading,

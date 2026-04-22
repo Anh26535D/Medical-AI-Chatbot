@@ -37,4 +37,9 @@
     <string name="view_details">Xem chi tiết</string>
     <string name="doctor_in_charge">Bác sĩ phụ trách</string>
     <string name="pharmacist_consultant">Dược sĩ tư vấn</string>
+
+    <!-- Disclaimer -->
+    <string name="disclaimer_title">Miễn trừ trách nhiệm</string>
+    <string name="disclaimer_message">Ứng dụng này cung cấp thông tin y tế mang tính chất tham khảo, không thay thế cho chẩn đoán hoặc lời khuyên y khoa chuyên nghiệp. Định hướng và đánh giá từ AI không phải để thay thế hoàn toàn bác sĩ. Trong trường hợp khẩn cấp, vui lòng liên hệ ngay với cơ sở y tế gần nhất hoặc gọi 115.</string>
+    <string name="disclaimer_agree">Tôi đã hiểu và đồng ý</string>
 </resources>
