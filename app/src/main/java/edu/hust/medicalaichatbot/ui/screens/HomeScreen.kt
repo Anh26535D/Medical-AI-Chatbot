@@ -89,7 +89,7 @@ fun HomeScreen(
     
     LaunchedEffect(Unit) {
         if (chatViewModel.currentThreadId.value == null) {
-            chatViewModel.setCurrentThread("default_thread")
+            chatViewModel.setCurrentThread(java.util.UUID.randomUUID().toString())
         }
     }
     
