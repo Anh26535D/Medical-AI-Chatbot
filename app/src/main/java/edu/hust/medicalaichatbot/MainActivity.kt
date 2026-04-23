@@ -57,10 +57,14 @@ import edu.hust.medicalaichatbot.ui.viewmodel.AuthViewModel
 import edu.hust.medicalaichatbot.ui.viewmodel.ChatViewModel
 import edu.hust.medicalaichatbot.ui.viewmodel.HistoryViewModel
 import edu.hust.medicalaichatbot.utils.Constants
+import edu.hust.medicalaichatbot.utils.PreferenceManager
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        val preferenceManager = PreferenceManager(this)
+        preferenceManager.updateLastVisit()
+        
         enableEdgeToEdge()
         setContent {
             MedicalAIChatbotTheme {
@@ -92,7 +96,7 @@ class MainActivity : ComponentActivity() {
                     factory = HistoryViewModel.Factory(getThreadsUseCase, deleteThreadUseCase, getMessagesUseCase)
                 )
 
-                MedicalApp(authViewModel, chatViewModel, historyViewModel)
+                MedicalApp(authViewModel, chatViewModel, historyViewModel, preferenceManager)
             }
         }
     }
@@ -103,7 +107,8 @@ class MainActivity : ComponentActivity() {
 fun MedicalApp(
     authViewModel: AuthViewModel, 
     chatViewModel: ChatViewModel,
-    historyViewModel: HistoryViewModel
+    historyViewModel: HistoryViewModel,
+    preferenceManager: PreferenceManager
 ) {
     val navController = rememberNavController()
     val authState by authViewModel.authState.collectAsState()
@@ -183,13 +188,19 @@ fun MedicalApp(
             ) {
                 composable("splash") {
                     SplashScreen(onTimeout = {
-                        navController.navigate("onboarding") {
+                        val destination = if (preferenceManager.shouldShowOnboarding()) {
+                            "onboarding"
+                        } else {
+                            "login"
+                        }
+                        navController.navigate(destination) {
                             popUpTo("splash") { inclusive = true }
                         }
                     })
                 }
                 composable("onboarding") {
                     OnboardingScreen(onFinish = {
+                        preferenceManager.setFirstTimeLaunch(false)
                         navController.navigate("login") {
                             popUpTo("onboarding") { inclusive = true }
                         }
