@@ -18,16 +18,22 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
@@ -44,7 +50,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import edu.hust.medicalaichatbot.R
+import edu.hust.medicalaichatbot.data.llm.parser.SummaryResponseParser
 import edu.hust.medicalaichatbot.data.model.HealthStatus
 import edu.hust.medicalaichatbot.domain.model.ChatThread
 import edu.hust.medicalaichatbot.ui.theme.BackgroundGray
@@ -52,27 +60,27 @@ import edu.hust.medicalaichatbot.ui.theme.EmergencyRed
 import edu.hust.medicalaichatbot.ui.theme.PrimaryBlue
 import edu.hust.medicalaichatbot.ui.theme.SuccessGreen
 import edu.hust.medicalaichatbot.ui.theme.TextGray
+import edu.hust.medicalaichatbot.ui.viewmodel.AuthState
+import edu.hust.medicalaichatbot.ui.viewmodel.AuthViewModel
 import edu.hust.medicalaichatbot.ui.viewmodel.HistoryViewModel
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-
-import androidx.lifecycle.viewmodel.compose.viewModel
-import edu.hust.medicalaichatbot.ui.viewmodel.AuthViewModel
-import edu.hust.medicalaichatbot.ui.viewmodel.AuthState
 
 @Composable
 fun HistoryScreen(
     viewModel: HistoryViewModel,
     authViewModel: AuthViewModel = viewModel(),
     onThreadClick: (String) -> Unit = {},
-    onLoginClick: () -> Unit = {}
+    onLoginClick: () -> Unit = {},
+    onNewChatClick: () -> Unit = {}
 ) {
     val threads by viewModel.threads.collectAsState()
     val authState by authViewModel.authState.collectAsState()
     val isGuest = authState is AuthState.Guest
     
     var searchQuery by remember { mutableStateOf("") }
+    var threadToDelete by remember { mutableStateOf<ChatThread?>(null) }
     
     val filteredThreads = remember(threads, searchQuery) {
         if (searchQuery.isBlank()) threads
@@ -82,42 +90,86 @@ fun HistoryScreen(
         }
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(BackgroundGray)
-            .padding(horizontal = 16.dp)
-    ) {
-        if (isGuest) {
-            Spacer(modifier = Modifier.height(16.dp))
-            GuestAccountPlaceholder(onLoginClick = onLoginClick)
-        } else {
-            Spacer(modifier = Modifier.height(8.dp))
-            SearchBar(
-                query = searchQuery,
-                onQueryChange = { searchQuery = it }
-            )
-            Spacer(modifier = Modifier.height(16.dp))
-            
-            if (filteredThreads.isEmpty()) {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(Icons.Default.History, contentDescription = null, modifier = Modifier.size(64.dp), tint = Color.LightGray)
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Text(text = "Chưa có lịch sử tư vấn", color = TextGray)
-                    }
-                }
-            } else {
-                LazyColumn(
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                    contentPadding = PaddingValues(bottom = 16.dp)
+    Scaffold(
+        floatingActionButton = {
+            if (!isGuest) {
+                FloatingActionButton(
+                    onClick = onNewChatClick,
+                    containerColor = PrimaryBlue,
+                    contentColor = Color.White,
+                    shape = RoundedCornerShape(16.dp)
                 ) {
-                    items(filteredThreads) { thread ->
-                        HistoryCard(thread) { onThreadClick(thread.id) }
+                    Icon(Icons.Default.Add, contentDescription = "New Chat")
+                }
+            }
+        },
+        containerColor = Color.Transparent
+    ) { padding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(BackgroundGray)
+                .padding(horizontal = 16.dp)
+                .padding(padding)
+        ) {
+            if (isGuest) {
+                Spacer(modifier = Modifier.height(16.dp))
+                GuestAccountPlaceholder(onLoginClick = onLoginClick)
+            } else {
+                Spacer(modifier = Modifier.height(8.dp))
+                SearchBar(
+                    query = searchQuery,
+                    onQueryChange = { searchQuery = it }
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                
+                if (filteredThreads.isEmpty()) {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Icon(Icons.Default.History, contentDescription = null, modifier = Modifier.size(64.dp), tint = Color.LightGray)
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Text(text = "Chưa có lịch sử tư vấn", color = TextGray)
+                        }
+                    }
+                } else {
+                    LazyColumn(
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                        contentPadding = PaddingValues(bottom = 80.dp)
+                    ) {
+                        items(filteredThreads) { thread ->
+                            HistoryCard(
+                                thread = thread,
+                                onClick = { onThreadClick(thread.id) },
+                                onDeleteClick = { threadToDelete = thread }
+                            )
+                        }
                     }
                 }
             }
         }
+    }
+
+    threadToDelete?.let { thread ->
+        AlertDialog(
+            onDismissRequest = { threadToDelete = null },
+            title = { Text("Xóa đoạn chat") },
+            text = { Text("Bạn có chắc chắn muốn xóa đoạn chat này không? Thao tác này không thể hoàn tác.") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.deleteThread(thread.id)
+                        threadToDelete = null
+                    }
+                ) {
+                    Text("Xóa", color = EmergencyRed)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { threadToDelete = null }) {
+                    Text("Hủy")
+                }
+            }
+        )
     }
 }
 
@@ -159,7 +211,7 @@ fun SearchBar(query: String, onQueryChange: (String) -> Unit) {
 }
 
 @Composable
-fun HistoryCard(thread: ChatThread, onClick: () -> Unit) {
+fun HistoryCard(thread: ChatThread, onClick: () -> Unit, onDeleteClick: () -> Unit) {
     val dateFormat = SimpleDateFormat("dd MMMM, yyyy", Locale.forLanguageTag("vi"))
     val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
     
@@ -170,10 +222,10 @@ fun HistoryCard(thread: ChatThread, onClick: () -> Unit) {
     }
 
     val triageLevel = remember(thread.summary) {
-        when {
-            thread.summary?.contains("[TRIAGE: RED]", ignoreCase = true) == true -> HealthStatus.CRITICAL
-            thread.summary?.contains("[TRIAGE: ORANGE]", ignoreCase = true) == true -> HealthStatus.MONITORING
-            thread.summary?.contains("[TRIAGE: YELLOW]", ignoreCase = true) == true -> HealthStatus.MONITORING
+        val parsedSummary = thread.summary?.let { SummaryResponseParser.parse(it) }
+        when (parsedSummary?.triageLevel?.uppercase()) {
+            "RED" -> HealthStatus.CRITICAL
+            "ORANGE", "YELLOW" -> HealthStatus.MONITORING
             else -> HealthStatus.STABLE
         }
     }
@@ -208,20 +260,37 @@ fun HistoryCard(thread: ChatThread, onClick: () -> Unit) {
                     )
                 }
                 
-                StatusBadge(triageLevel)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    StatusBadge(triageLevel)
+                    Spacer(modifier = Modifier.width(4.dp))
+                    IconButton(
+                        onClick = onDeleteClick,
+                        modifier = Modifier.size(24.dp)
+                    ) {
+                        Icon(
+                            Icons.Default.Delete,
+                            contentDescription = "Delete",
+                            tint = TextGray.copy(alpha = 0.5f),
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                }
             }
             
             if (!thread.summary.isNullOrBlank()) {
-                Spacer(modifier = Modifier.height(8.dp))
-                val cleanSummary = thread.summary.replace(Regex("\\[TRIAGE:.*?]"), "").trim()
-                Text(
-                    text = cleanSummary,
-                    fontSize = 13.sp,
-                    color = TextGray,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                    lineHeight = 18.sp
-                )
+                val parsedSummary = SummaryResponseParser.parse(thread.summary)
+                if (parsedSummary.diagnosis != null) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "Dự đoán: ${parsedSummary.diagnosis}",
+                        fontSize = 13.sp,
+                        color = TextGray,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                        lineHeight = 18.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
             }
             
             Spacer(modifier = Modifier.height(12.dp))
@@ -229,13 +298,8 @@ fun HistoryCard(thread: ChatThread, onClick: () -> Unit) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
+                horizontalArrangement = Arrangement.End
             ) {
-                Text(
-                    text = "Model: ${thread.modelName.split("/").last()}",
-                    fontSize = 10.sp,
-                    color = TextGray.copy(alpha = 0.7f)
-                )
                 Text(
                     text = stringResource(R.string.view_details),
                     fontSize = 12.sp,
@@ -252,7 +316,7 @@ fun StatusBadge(status: HealthStatus) {
     val (backgroundColor, contentColor, textRes, icon) = when (status) {
         HealthStatus.STABLE -> Quad(SuccessGreen.copy(alpha = 0.2f), SuccessGreen, R.string.status_stable, Icons.Default.CheckCircle)
         HealthStatus.MONITORING -> Quad(Color(0xFFFFF3E0), Color(0xFFE65100), R.string.status_monitoring, Icons.Default.Warning)
-        HealthStatus.CRITICAL -> Quad(EmergencyRed.copy(alpha = 0.1f), EmergencyRed, R.string.status_monitoring, Icons.Default.Error) // Reuse monitoring string or add critical
+        HealthStatus.CRITICAL -> Quad(EmergencyRed.copy(alpha = 0.1f), EmergencyRed, R.string.status_emergency, Icons.Default.Error)
     }
     
     Surface(
