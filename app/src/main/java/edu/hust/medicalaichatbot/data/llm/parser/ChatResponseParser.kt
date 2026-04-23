@@ -1,8 +1,8 @@
-package edu.hust.medicalaichatbot.utils
+package edu.hust.medicalaichatbot.data.llm.parser
 
 import edu.hust.medicalaichatbot.domain.model.TriageTag
 
-data class ParsedLlmResponse(
+data class ChatResponse(
     val thought: String? = null,
     val diagnosisGuess: String? = null,
     val symptomsObserved: List<String> = emptyList(),
@@ -11,30 +11,30 @@ data class ParsedLlmResponse(
     val extractedQuestions: List<String> = emptyList()
 )
 
-object LlmParser {
-    fun parse(text: String): ParsedLlmResponse {
+object ChatResponseParser {
+    fun parse(text: String): ChatResponse {
         val thought = extractTag(text, "thought")
         val diagnosisGuess = extractTag(text, "diagnosis_guess")
         val symptomsObserved = extractTag(text, "symptoms_observed")
             ?.split(",")
             ?.map { it.trim() }
             ?.filter { it.isNotEmpty() } ?: emptyList()
-        val rawMessage = extractTag(text, "message") ?: text // Fallback to full text if no message tag
+        val rawMessage = extractTag(text, "message") ?: text
         val triageTagString = extractTag(text, "triage_tag")?.uppercase()
         
         val triageTag = try {
-            if (triageTagString != null && triageTagString != "NONE") {
+            if (triageTagString != null) {
                 TriageTag.valueOf(triageTagString)
             } else {
-                null
+                TriageTag.NONE
             }
         } catch (e: IllegalArgumentException) {
-            null
+            TriageTag.NONE
         }
 
         val (cleanMessage, extractedQuestions) = extractQuestionsAndCleanMessage(rawMessage)
 
-        return ParsedLlmResponse(
+        return ChatResponse(
             thought = thought,
             diagnosisGuess = diagnosisGuess,
             symptomsObserved = symptomsObserved,
@@ -51,7 +51,7 @@ object LlmParser {
     private fun extractQuestionsAndCleanMessage(messageText: String): Pair<String, List<String>> {
         val questions = mutableListOf<String>()
         val remainingLines = mutableListOf<String>()
-        
+
         val lines = messageText.lines()
         for (line in lines) {
             val trimmed = line.trim()
@@ -81,14 +81,14 @@ object LlmParser {
             if (standaloneQ != null) {
                 var q = standaloneQ.trim().replace("**", "")
                 questions.add(q)
-                // Tuỳ chọn: Có thể xoá standaloneQ khỏi remainingLines tại đây, 
+                // Tuỳ chọn: Có thể xoá standaloneQ khỏi remainingLines tại đây,
                 // nhưng để an toàn thì giữ lại vì nó nằm trong văn xuôi.
             }
         }
-        
+
         // Dọn dẹp khoảng trắng dư thừa
         var cleanMessage = remainingLines.joinToString("\n").trim()
-        
+
         return Pair(cleanMessage, questions.take(5))
     }
 
@@ -98,13 +98,11 @@ object LlmParser {
         if (match != null) {
             return match.groupValues[1].trim()
         }
-        
-        // Fallback for unclosed tags (common in streaming or truncated responses)
+
         val openTag = "<$tagName>"
         if (text.contains(openTag)) {
             val startIndex = text.indexOf(openTag) + openTag.length
             val content = text.substring(startIndex).trim()
-            // If there's another tag starting later, cut it off
             val nextTagIndex = content.indexOf("<")
             return if (nextTagIndex != -1) {
                 content.substring(0, nextTagIndex).trim()

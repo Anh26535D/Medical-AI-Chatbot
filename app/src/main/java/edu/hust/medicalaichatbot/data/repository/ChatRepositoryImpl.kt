@@ -19,9 +19,11 @@ import edu.hust.medicalaichatbot.domain.model.ChatMessage
 import edu.hust.medicalaichatbot.domain.model.ChatThread
 import edu.hust.medicalaichatbot.domain.model.MessageRole
 import edu.hust.medicalaichatbot.domain.repository.ChatRepository
+import edu.hust.medicalaichatbot.data.llm.ChatManager
+import edu.hust.medicalaichatbot.data.llm.SummaryManager
+import edu.hust.medicalaichatbot.data.llm.parser.ChatResponseParser
 import edu.hust.medicalaichatbot.utils.Constants
 import edu.hust.medicalaichatbot.utils.Def
-import edu.hust.medicalaichatbot.utils.LlmParser
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -40,10 +42,16 @@ class ChatRepositoryImpl(
         private val TAG = Def.tagOf("ChatRepo")
     }
 
-    private val generativeModel = Firebase.ai(backend = GenerativeBackend.googleAI())
+    private val chatModel = Firebase.ai(backend = GenerativeBackend.googleAI())
         .generativeModel(
             modelName = modelName,
-            systemInstruction = content { text(BuildConfig.SYSTEM_PROMPT) }
+            systemInstruction = content { text(BuildConfig.CHAT_SYSTEM_PROMPT) }
+        )
+
+    private val summaryModel = Firebase.ai(backend = GenerativeBackend.googleAI())
+        .generativeModel(
+            modelName = modelName,
+            systemInstruction = content { text(BuildConfig.SUMMARY_SYSTEM_PROMPT) }
         )
 
     override fun getMessages(threadId: String): Flow<PagingData<ChatMessage>> {
@@ -130,7 +138,8 @@ class ChatRepositoryImpl(
                 content(role = if (it.role == MessageRole.USER) Constants.ROLE_USER else Constants.ROLE_MODEL) { text(it.content) }
             }
 
-            val chatManager = MedicalChatManager(generativeModel, historyContent.takeLast(12))
+            val chatManager = ChatManager(chatModel, historyContent.takeLast(12))
+            val summaryManager = SummaryManager(summaryModel)
             
             // 4. Gửi tin nhắn với Location Context, Medical Summary và Symptom Cache
             val response = chatManager.sendMessage(
@@ -142,7 +151,7 @@ class ChatRepositoryImpl(
             val responseText = response.text ?: "Xin lỗi, tôi không thể xử lý yêu cầu lúc này."
 
             // 5. Cập nhật Cache triệu chứng và Nén ngữ cảnh tự động
-            val parsedResponse = LlmParser.parse(responseText)
+            val parsedResponse = ChatResponseParser.parse(responseText)
             
             chatManager.extractSymptomCache()?.let { newCache ->
                 chatDao.updateThreadSymptomCache(threadId, newCache)
@@ -150,14 +159,12 @@ class ChatRepositoryImpl(
 
             // Generate or update summary if compression is needed OR if a diagnosis guess is provided
             if (chatManager.shouldCompress() || (parsedResponse.diagnosisGuess != null && thread?.summary == null)) {
-                chatManager.requestMedicalSummary(parsedResponse.triageTag?.name)?.let { newSummary ->
-                    chatDao.updateThreadSummary(threadId, newSummary)
+                summaryManager.generateSummary(history, parsedResponse.triageTag?.name)?.let { newSummaryResponse ->
+                    chatDao.updateThreadSummary(threadId, newSummaryResponse.rawText)
                 }
             } else if (parsedResponse.diagnosisGuess != null) {
-                // If we already have a summary but got a new diagnosis guess, maybe update it?
-                // For now, let's update it to keep the diagnosis current
-                chatManager.requestMedicalSummary(parsedResponse.triageTag?.name)?.let { newSummary ->
-                    chatDao.updateThreadSummary(threadId, newSummary)
+                summaryManager.generateSummary(history, parsedResponse.triageTag?.name)?.let { newSummaryResponse ->
+                    chatDao.updateThreadSummary(threadId, newSummaryResponse.rawText)
                 }
             }
             

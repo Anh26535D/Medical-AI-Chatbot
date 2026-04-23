@@ -1,16 +1,15 @@
-package edu.hust.medicalaichatbot.data.repository
+package edu.hust.medicalaichatbot.data.llm
 
+import android.util.Log
 import com.google.firebase.ai.GenerativeModel
 import com.google.firebase.ai.type.Content
 import com.google.firebase.ai.type.GenerateContentResponse
 import com.google.firebase.ai.type.content
-import android.util.Log
+import edu.hust.medicalaichatbot.BuildConfig
 import edu.hust.medicalaichatbot.utils.Constants
 import edu.hust.medicalaichatbot.utils.Def
 
-import edu.hust.medicalaichatbot.BuildConfig
-
-class MedicalChatManager(
+class ChatManager(
     private val model: GenerativeModel,
     initialHistory: List<Content> = emptyList()
 ) {
@@ -23,26 +22,6 @@ class MedicalChatManager(
             content.parts.sumOf { part -> part.toString().length } 
         }
         return _history.size >= 10 || totalChars > 4000
-    }
-
-    suspend fun requestMedicalSummary(triageTag: String? = null): String? {
-        val triageInfo = if (triageTag != null) "Triage Level: $triageTag\n" else ""
-        val summaryPrompt = content(role = Constants.ROLE_USER) {
-            text(String.format(BuildConfig.SUMMARY_PROMPT, triageInfo))
-        }
-
-        val requestList = mutableListOf<Content>()
-        requestList.addAll(_history)
-        requestList.add(summaryPrompt)
-
-        return try {
-            val response = model.generateContent(requestList)
-            val result = response.text
-            if (result?.contains("INCOMPLETE") == true) null else result
-        } catch (e: Exception) {
-            Log.e(TAG, "Error generating summary", e)
-            null
-        }
     }
 
     suspend fun extractSymptomCache(): String? {
@@ -63,10 +42,6 @@ class MedicalChatManager(
         }
     }
 
-    /**
-     * sendMessage với khả năng nhận thông tin vị trí thực tế
-     * @param nearbyPlaces: Danh sách các cơ sở y tế gần đó (đã được app lấy qua GPS/Maps API)
-     */
     suspend fun sendMessage(
         prompt: String, 
         currentSummary: String? = null,
@@ -78,7 +53,6 @@ class MedicalChatManager(
 
         val requestList = mutableListOf<Content>()
         
-        // 1. Location Info
         nearbyPlaces?.let {
             requestList.add(content(role = Constants.ROLE_USER) { 
                 text(BuildConfig.CONTEXT_LOCATION.format(it)) 
@@ -88,7 +62,6 @@ class MedicalChatManager(
             })
         }
 
-        // 3. Symptom Cache (Thông tin đã biết)
         symptomCache?.let {
             requestList.add(content(role = Constants.ROLE_USER) {
                 text(BuildConfig.CONTEXT_SYMPTOMS.format(it))
@@ -98,7 +71,6 @@ class MedicalChatManager(
             })
         }
 
-        // 4. Medical Summary
         currentSummary?.let { 
             requestList.add(content(role = Constants.ROLE_USER) { 
                 text(BuildConfig.CONTEXT_SUMMARY.format(it))
@@ -121,9 +93,5 @@ class MedicalChatManager(
             Log.e(TAG, "Error in sendMessage", e)
             throw e
         }
-    }
-
-    companion object {
-        // Removed hardcoded prompts. They are now in BuildConfig.
     }
 }

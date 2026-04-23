@@ -60,6 +60,8 @@ import androidx.paging.compose.collectAsLazyPagingItems
 import androidx.paging.compose.itemContentType
 import androidx.paging.compose.itemKey
 import edu.hust.medicalaichatbot.R
+import edu.hust.medicalaichatbot.data.llm.parser.ChatResponse
+import edu.hust.medicalaichatbot.data.llm.parser.ChatResponseParser
 import edu.hust.medicalaichatbot.domain.model.ChatMessage
 import edu.hust.medicalaichatbot.domain.model.MessageRole
 import edu.hust.medicalaichatbot.domain.model.TriageTag
@@ -69,7 +71,6 @@ import edu.hust.medicalaichatbot.ui.theme.SuccessGreen
 import edu.hust.medicalaichatbot.ui.theme.SurfaceGray
 import edu.hust.medicalaichatbot.ui.theme.TextGray
 import edu.hust.medicalaichatbot.ui.viewmodel.ChatViewModel
-import edu.hust.medicalaichatbot.utils.LlmParser
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -86,7 +87,7 @@ fun HomeScreen(
     val context = LocalContext.current
     val sharedPreferences = remember { context.getSharedPreferences("app_prefs", android.content.Context.MODE_PRIVATE) }
     var showDisclaimer by remember { mutableStateOf(!sharedPreferences.getBoolean("has_accepted_disclaimer", false)) }
-    
+
     LaunchedEffect(Unit) {
         if (chatViewModel.currentThreadId.value == null) {
             chatViewModel.setCurrentThread(java.util.UUID.randomUUID().toString())
@@ -123,9 +124,9 @@ fun HomeScreen(
                 },
                 confirmButton = {
                     Button(
-                        onClick = { 
+                        onClick = {
                             sharedPreferences.edit().putBoolean("has_accepted_disclaimer", true).apply()
-                            showDisclaimer = false 
+                            showDisclaimer = false
                         },
                         colors = ButtonDefaults.buttonColors(containerColor = PrimaryBlue)
                     ) {
@@ -267,7 +268,7 @@ fun QuickReplyButtons(
 
 @Composable
 fun AiMessage(text: String, timestamp: Long) {
-    val parsedResponse = remember(text) { LlmParser.parse(text) }
+    val parsedResponse = remember(text) { ChatResponseParser.parse(text) }
     val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
 
     Row(modifier = Modifier.fillMaxWidth().padding(end = 40.dp), horizontalArrangement = Arrangement.Start) {
@@ -322,7 +323,7 @@ fun AiMessage(text: String, timestamp: Long) {
 }
 
 @Composable
-fun AiAssessmentSection(response: edu.hust.medicalaichatbot.utils.ParsedLlmResponse) {
+fun AiAssessmentSection(response: ChatResponse) {
     Column(
         modifier = Modifier
             .fillMaxWidth()

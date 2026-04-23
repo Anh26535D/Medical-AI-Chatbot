@@ -109,8 +109,8 @@ android {
 
     buildTypes {
         debug {
-            buildConfigField("String", "SYSTEM_PROMPT", getPrompt("SYSTEM_PROMPT"))
-            buildConfigField("String", "SUMMARY_PROMPT", getPrompt("SUMMARY_PROMPT"))
+            buildConfigField("String", "CHAT_SYSTEM_PROMPT", getPrompt("TRIAGE_MEDICAL_SYSTEM_PROMPT"))
+            buildConfigField("String", "SUMMARY_SYSTEM_PROMPT", getPrompt("ANALYSIS_MEDICAL_SYSTEM_PROMPT"))
             buildConfigField("String", "SYMPTOM_CACHE_PROMPT", getPrompt("SYMPTOM_CACHE_PROMPT"))
             buildConfigField("String", "CONTEXT_LOCATION", getPrompt("CONTEXT_LOCATION", "Dưới đây là danh sách các cơ sở y tế/nhà thuốc gần vị trí của tôi nhất: %s"))
             buildConfigField("String", "CONTEXT_SYMPTOMS", getPrompt("CONTEXT_SYMPTOMS", "Các thông tin triệu chứng đã thu thập được: %s. KHÔNG hỏi lại những thông tin này nếu đã rõ ràng."))
@@ -125,8 +125,8 @@ android {
                 "proguard-rules.pro"
             )
             
-            buildConfigField("String", "SYSTEM_PROMPT", getPrompt("SYSTEM_PROMPT"))
-            buildConfigField("String", "SUMMARY_PROMPT", getPrompt("SUMMARY_PROMPT"))
+            buildConfigField("String", "CHAT_SYSTEM_PROMPT", getPrompt("TRIAGE_MEDICAL_SYSTEM_PROMPT"))
+            buildConfigField("String", "SUMMARY_SYSTEM_PROMPT", getPrompt("ANALYSIS_MEDICAL_SYSTEM_PROMPT"))
             buildConfigField("String", "SYMPTOM_CACHE_PROMPT", getPrompt("SYMPTOM_CACHE_PROMPT"))
             buildConfigField("String", "CONTEXT_LOCATION", getPrompt("CONTEXT_LOCATION"))
             buildConfigField("String", "CONTEXT_SYMPTOMS", getPrompt("CONTEXT_SYMPTOMS"))
