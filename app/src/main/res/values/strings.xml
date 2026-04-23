@@ -1,7 +1,7 @@
 <resources>
     <string name="app_name">Medical AI Chatbot</string>
     <string name="app_title">Sức Khỏe Việt AI</string>
-    <string name="chat_welcome_msg">Chào Chị, tôi là trợ lý sức khỏe AI của bạn. Hôm nay bạn cảm thấy thế nào ạ? Bạn có cần tôi giúp kiểm tra triệu chứng gì không?</string>
+    <string name="chat_welcome_msg">Tôi là trợ lý sức khỏe AI của bạn. Hôm nay bạn cảm thấy thế nào?</string>
     <string name="ai_analyzing">AI đang phân tích...</string>
     <string name="error_generic">Đã xảy ra lỗi hệ thống. Vui lòng thử lại sau.</string>
     <string name="input_placeholder">Mô tả triệu chứng của bạn...</string>
@@ -39,8 +39,9 @@
     <string name="doctor_in_charge">Bác sĩ phụ trách</string>
     <string name="pharmacist_consultant">Dược sĩ tư vấn</string>
 
-    <!-- Disclaimer -->
+    <!-- Disclaimer & Warnings -->
     <string name="disclaimer_title">Miễn trừ trách nhiệm</string>
-    <string name="disclaimer_message">Ứng dụng này cung cấp thông tin y tế mang tính chất tham khảo, không thay thế cho chẩn đoán hoặc lời khuyên y khoa chuyên nghiệp. Định hướng và đánh giá từ AI không phải để thay thế hoàn toàn bác sĩ. Trong trường hợp khẩn cấp, vui lòng liên hệ ngay với cơ sở y tế gần nhất hoặc gọi 115.</string>
+    <string name="disclaimer_message">Ứng dụng này cung cấp thông tin y tế mang tính chất tham khảo, không thay thế cho chẩn đoán hoặc lời khuyên y khoa chuyên nghiệp. Trong trường hợp khẩn cấp, vui lòng liên hệ ngay với cơ sở y tế gần nhất hoặc gọi 115.</string>
     <string name="disclaimer_agree">Tôi đã hiểu và đồng ý</string>
+    <string name="ai_warning_short">AI có thể nhầm lẫn. Hãy tham khảo ý kiến bác sĩ cho các quyết định y tế.</string>
 </resources>

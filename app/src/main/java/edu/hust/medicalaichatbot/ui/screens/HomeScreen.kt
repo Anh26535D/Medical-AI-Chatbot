@@ -1,9 +1,11 @@
 package edu.hust.medicalaichatbot.ui.screens
 
 import android.content.Intent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -23,28 +25,31 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.LocalPharmacy
 import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.MedicalServices
 import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.filled.SmartToy
 import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.SmallFloatingActionButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -71,6 +76,7 @@ import edu.hust.medicalaichatbot.ui.theme.SuccessGreen
 import edu.hust.medicalaichatbot.ui.theme.SurfaceGray
 import edu.hust.medicalaichatbot.ui.theme.TextGray
 import edu.hust.medicalaichatbot.ui.viewmodel.ChatViewModel
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -158,70 +164,113 @@ fun ChatSection(
     modifier: Modifier = Modifier
 ) {
     val listState = rememberLazyListState()
-    
+    val scope = rememberCoroutineScope()
+
+    val showScrollToBottom by remember {
+        derivedStateOf {
+            val lastVisibleItem = listState.layoutInfo.visibleItemsInfo.lastOrNull()
+            lastVisibleItem != null && lastVisibleItem.index < listState.layoutInfo.totalItemsCount - 2
+        }
+    }
+
     LaunchedEffect(messages.itemCount) {
         if (messages.itemCount > 0) {
-            listState.animateScrollToItem(messages.itemCount - 1)
+            listState.animateScrollToItem(messages.itemCount)
         }
     }
 
     if (messages.itemCount == 0 && !isLoading) {
         WelcomeScreen(onSuggestedClick = onSuggestedClick)
     } else {
-        LazyColumn(
-            state = listState,
-            modifier = modifier.fillMaxWidth(),
-            contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(20.dp)
-        ) {
-            item {
-                Box(modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp), contentAlignment = Alignment.Center) {
-                    val dateString = SimpleDateFormat("dd MMMM", Locale.forLanguageTag("vi")).format(Date())
-                    Text(
-                        text = stringResource(R.string.today_label, dateString),
-                        fontSize = 12.sp,
-                        color = TextGray,
-                        modifier = Modifier
-                            .background(Color.White, RoundedCornerShape(12.dp))
-                            .padding(horizontal = 16.dp, vertical = 6.dp)
-                    )
-                }
-            }
+        Box(modifier = modifier) {
+            Column(modifier = Modifier.fillMaxSize()) {
+                AiWarningBanner(modifier = Modifier.padding(16.dp))
 
-            items(
-                count = messages.itemCount,
-                key = messages.itemKey { it.id },
-                contentType = messages.itemContentType { "chat_message" }
-            ) { index ->
-                val message = messages[index]
-                if (message != null) {
-                    if (message.role == MessageRole.MODEL || message.role == MessageRole.ERROR) {
-                        AiMessage(text = message.content, timestamp = message.timestamp)
-                    } else {
-                        UserMessage(text = message.content, timestamp = message.timestamp)
-                    }
-                }
-            }
-
-            // Quick Reply Buttons for the last AI message
-            if (!isLoading && messages.itemCount > 0) {
-                val lastMessage = messages[messages.itemCount - 1]
-                if (lastMessage != null && (lastMessage.role == MessageRole.MODEL)) {
-                    val parsed = LlmParser.parse(lastMessage.content)
-                    if (parsed.extractedQuestions.isNotEmpty()) {
-                        item {
-                            QuickReplyButtons(
-                                questions = parsed.extractedQuestions,
-                                onQuestionClick = onQuickReplyClick
+                LazyColumn(
+                    state = listState,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
+                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(20.dp)
+                ) {
+                    item {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(bottom = 8.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            val dateString =
+                                SimpleDateFormat("dd MMMM", Locale.forLanguageTag("vi")).format(Date())
+                            Text(
+                                text = stringResource(R.string.today_label, dateString),
+                                fontSize = 12.sp,
+                                color = TextGray,
+                                modifier = Modifier
+                                    .background(Color.White, RoundedCornerShape(12.dp))
+                                    .padding(horizontal = 16.dp, vertical = 6.dp)
                             )
+                        }
+                    }
+
+                    items(
+                        count = messages.itemCount,
+                        key = messages.itemKey { it.id },
+                        contentType = messages.itemContentType { "chat_message" }
+                    ) { index ->
+                        val message = messages[index]
+                        if (message != null) {
+                            if (message.role == MessageRole.MODEL || message.role == MessageRole.ERROR) {
+                                AiMessage(text = message.content, timestamp = message.timestamp)
+                            } else {
+                                UserMessage(text = message.content, timestamp = message.timestamp)
+                            }
+                        }
+                    }
+
+                    if (isLoading) {
+                        item {
+                            AiLoadingIndicator()
+                        }
+                    }
+
+                    // Quick Reply Buttons for the last AI message
+                    val lastMessage = messages.itemSnapshotList.items.lastOrNull()
+                    if (!isLoading && lastMessage != null && lastMessage.role == MessageRole.MODEL) {
+                        val parsed = ChatResponseParser.parse(lastMessage.content)
+                        if (parsed.extractedQuestions.isNotEmpty()) {
+                            item {
+                                QuickReplyButtons(
+                                    questions = parsed.extractedQuestions,
+                                    onQuestionClick = onQuickReplyClick
+                                )
+                            }
                         }
                     }
                 }
             }
 
-            if (isLoading) {
-                item {
-                    AiLoadingIndicator()
+            AnimatedVisibility(
+                visible = showScrollToBottom,
+                enter = fadeIn(),
+                exit = fadeOut(),
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(bottom = 16.dp, end = 16.dp)
+            ) {
+                SmallFloatingActionButton(
+                    onClick = {
+                        scope.launch {
+                            listState.animateScrollToItem(listState.layoutInfo.totalItemsCount)
+                        }
+                    },
+                    containerColor = Color.White,
+                    contentColor = PrimaryBlue,
+                    shape = CircleShape,
+                    modifier = Modifier.size(40.dp)
+                ) {
+                    Icon(Icons.Default.KeyboardArrowDown, contentDescription = "Cuộn xuống")
                 }
             }
         }
@@ -236,32 +285,60 @@ fun QuickReplyButtons(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(start = 48.dp),
-        verticalArrangement = Arrangement.spacedBy(6.dp)
+            .padding(start = 48.dp, bottom = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         Text(
             text = "Chọn để trả lời nhanh:",
             fontSize = 12.sp,
             color = TextGray,
-            modifier = Modifier.padding(bottom = 4.dp)
+            modifier = Modifier.padding(bottom = 2.dp)
         )
         questions.forEach { question ->
             Surface(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { onQuestionClick(question) },
+                onClick = { onQuestionClick(question) },
                 shape = RoundedCornerShape(12.dp),
-                color = PrimaryBlue.copy(alpha = 0.08f),
-                border = androidx.compose.foundation.BorderStroke(1.dp, PrimaryBlue.copy(alpha = 0.3f))
+                color = Color.White,
+                border = androidx.compose.foundation.BorderStroke(1.dp, PrimaryBlue.copy(alpha = 0.2f)),
+                shadowElevation = 1.dp
             ) {
                 Text(
                     text = question,
-                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
-                    fontSize = 13.sp,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
+                    fontSize = 14.sp,
                     color = PrimaryBlue,
-                    lineHeight = 18.sp
+                    lineHeight = 20.sp
                 )
             }
+        }
+    }
+}
+
+
+@Composable
+fun AiWarningBanner(modifier: Modifier = Modifier) {
+    Surface(
+        color = Color(0xFFFFF9C4), // Light yellow
+        shape = RoundedCornerShape(12.dp),
+        modifier = modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier.padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                Icons.Default.Info,
+                contentDescription = null,
+                tint = Color(0xFFFBC02D), // Darker yellow
+                modifier = Modifier.size(20.dp)
+            )
+            Spacer(modifier = Modifier.width(12.dp))
+            Text(
+                text = stringResource(R.string.ai_warning_short),
+                fontSize = 12.sp,
+                color = Color(0xFF5D4037),
+                lineHeight = 16.sp
+            )
         }
     }
 }
@@ -524,7 +601,7 @@ fun AiLoadingIndicator() {
         }
         Spacer(modifier = Modifier.width(12.dp))
         Text(
-            text = "AI đang phân tích triệu chứng...",
+            text = stringResource(R.string.ai_analyzing),
             fontSize = 13.sp,
             color = TextGray,
             modifier = Modifier
@@ -560,7 +637,7 @@ fun WelcomeScreen(onSuggestedClick: (String) -> Unit) {
         Spacer(modifier = Modifier.height(8.dp))
 
         Text(
-            text = "Tôi là trợ lý sức khỏe AI.\nBạn đang gặp vấn đề gì?",
+            text = stringResource(R.string.chat_welcome_msg),
             fontSize = 16.sp,
             color = TextGray,
             lineHeight = 24.sp,
@@ -571,10 +648,7 @@ fun WelcomeScreen(onSuggestedClick: (String) -> Unit) {
 
         suggestions.forEach { suggestion ->
             Surface(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 6.dp)
-                    .clickable { onSuggestedClick(suggestion) },
+                onClick = { onSuggestedClick(suggestion) },
                 shape = RoundedCornerShape(16.dp),
                 color = Color.White,
                 shadowElevation = 1.dp,
@@ -582,7 +656,9 @@ fun WelcomeScreen(onSuggestedClick: (String) -> Unit) {
             ) {
                 Text(
                     text = suggestion,
-                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp, vertical = 16.dp),
                     fontSize = 15.sp,
                     color = Color.DarkGray
                 )

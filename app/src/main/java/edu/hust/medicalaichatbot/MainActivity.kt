@@ -29,6 +29,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.paging.compose.collectAsLazyPagingItems
 import edu.hust.medicalaichatbot.data.local.AppDatabase
 import edu.hust.medicalaichatbot.data.repository.AuthRepository
 import edu.hust.medicalaichatbot.data.repository.ChatRepositoryImpl
@@ -161,7 +162,8 @@ fun MedicalApp(
                         MessageInput(
                             onSendMessage = { chatViewModel.sendMessage(it) },
                             prefillText = prefillText,
-                            onPrefillConsumed = { prefillText = "" }
+                            onPrefillConsumed = { prefillText = "" },
+                            showInitialChips = chatViewModel.messages.collectAsLazyPagingItems().itemCount == 0
                         )
                         androidx.compose.material3.HorizontalDivider(
                             color = edu.hust.medicalaichatbot.ui.theme.SurfaceGray.copy(alpha = 0.5f),

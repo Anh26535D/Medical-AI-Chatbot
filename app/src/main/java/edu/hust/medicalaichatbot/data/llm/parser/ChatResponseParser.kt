@@ -32,15 +32,15 @@ object ChatResponseParser {
             TriageTag.NONE
         }
 
-        val (cleanMessage, extractedQuestions) = extractQuestionsAndCleanMessage(rawMessage)
+        // TODO: extract questions/suggestions from message
+        // val (cleanMessage, extractedQuestions) = extractQuestionsAndCleanMessage(rawMessage)
 
         return ChatResponse(
             thought = thought,
             diagnosisGuess = diagnosisGuess,
             symptomsObserved = symptomsObserved,
-            message = cleanMessage,
-            triageTag = triageTag,
-            extractedQuestions = extractedQuestions
+            message = rawMessage,
+            triageTag = triageTag
         )
     }
 
