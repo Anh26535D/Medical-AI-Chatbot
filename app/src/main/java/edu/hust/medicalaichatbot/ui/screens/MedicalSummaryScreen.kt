@@ -65,7 +65,8 @@ import java.util.Locale
 fun MedicalSummaryScreen(
     threadId: String,
     viewModel: HistoryViewModel,
-    onBackClick: () -> Unit
+    onBackClick: () -> Unit,
+    onContinueChat: (String) -> Unit = {}
 ) {
     val threads by viewModel.threads.collectAsState()
     val thread = threads.find { it.id == threadId }
@@ -116,7 +117,7 @@ fun MedicalSummaryScreen(
                     elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
-                        // Extract diagnosis and triage from summary if present
+                        // ... existing analysis content ...
                         val parsedSummary = thread.summary?.let { SummaryResponseParser.parse(it) }
                         val diagnosisMatch = parsedSummary?.diagnosis
                         val triageLevel = parsedSummary?.triageLevel
@@ -188,7 +189,7 @@ fun MedicalSummaryScreen(
                                 text = formatMarkdown(displaySummary),
                                 fontSize = 15.sp,
                                 lineHeight = 24.sp,
-                                color = Color(0xFF374151) // Darker gray for better readability
+                                color = Color(0xFF374151)
                             )
                         } else {
                             Text(
@@ -196,6 +197,24 @@ fun MedicalSummaryScreen(
                                 fontSize = 14.sp,
                                 fontStyle = FontStyle.Italic,
                                 color = TextGray
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(20.dp))
+                        
+                        Surface(
+                            onClick = { onContinueChat(threadId) },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp),
+                            color = PrimaryBlue
+                        ) {
+                            Text(
+                                text = "Tiếp tục trò chuyện về bệnh án này",
+                                modifier = Modifier.padding(vertical = 12.dp),
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White,
+                                textAlign = androidx.compose.ui.text.style.TextAlign.Center
                             )
                         }
                     }

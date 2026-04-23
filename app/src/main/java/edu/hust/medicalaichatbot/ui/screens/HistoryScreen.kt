@@ -1,7 +1,6 @@
 package edu.hust.medicalaichatbot.ui.screens
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -72,6 +71,7 @@ fun HistoryScreen(
     viewModel: HistoryViewModel,
     authViewModel: AuthViewModel = viewModel(),
     onThreadClick: (String) -> Unit = {},
+    onViewSummary: (String) -> Unit = {},
     onLoginClick: () -> Unit = {},
     onNewChatClick: () -> Unit = {}
 ) {
@@ -139,7 +139,8 @@ fun HistoryScreen(
                         items(filteredThreads) { thread ->
                             HistoryCard(
                                 thread = thread,
-                                onClick = { onThreadClick(thread.id) },
+                                onContinueClick = { onThreadClick(thread.id) },
+                                onViewSummaryClick = { onViewSummary(thread.id) },
                                 onDeleteClick = { threadToDelete = thread }
                             )
                         }
@@ -211,7 +212,12 @@ fun SearchBar(query: String, onQueryChange: (String) -> Unit) {
 }
 
 @Composable
-fun HistoryCard(thread: ChatThread, onClick: () -> Unit, onDeleteClick: () -> Unit) {
+fun HistoryCard(
+    thread: ChatThread,
+    onContinueClick: () -> Unit,
+    onViewSummaryClick: () -> Unit,
+    onDeleteClick: () -> Unit
+) {
     val dateFormat = SimpleDateFormat("dd MMMM, yyyy", Locale.forLanguageTag("vi"))
     val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
     
@@ -231,7 +237,7 @@ fun HistoryCard(thread: ChatThread, onClick: () -> Unit, onDeleteClick: () -> Un
     }
 
     Surface(
-        modifier = Modifier.fillMaxWidth().clickable { onClick() },
+        modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
         color = Color.White,
         shadowElevation = 1.dp
@@ -293,19 +299,45 @@ fun HistoryCard(thread: ChatThread, onClick: () -> Unit, onDeleteClick: () -> Un
                 }
             }
             
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(16.dp))
             
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.End
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Text(
-                    text = stringResource(R.string.view_details),
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold,
+                Surface(
+                    onClick = onViewSummaryClick,
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(12.dp),
+                    color = PrimaryBlue.copy(alpha = 0.08f),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, PrimaryBlue.copy(alpha = 0.3f))
+                ) {
+                    Text(
+                        text = "Xem tóm tắt",
+                        modifier = Modifier.padding(vertical = 10.dp),
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = PrimaryBlue,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                    )
+                }
+
+                Surface(
+                    onClick = onContinueClick,
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(12.dp),
                     color = PrimaryBlue
-                )
+                ) {
+                    Text(
+                        text = "Tiếp tục trò chuyện",
+                        modifier = Modifier.padding(vertical = 10.dp),
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.White,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                    )
+                }
             }
         }
     }

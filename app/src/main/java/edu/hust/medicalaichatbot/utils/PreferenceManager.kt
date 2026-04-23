@@ -12,6 +12,7 @@ class PreferenceManager(context: Context) {
         private const val PREF_NAME = "medical_ai_chatbot_prefs"
         private const val KEY_FIRST_TIME = "is_first_time"
         private const val KEY_LAST_VISIT = "last_visit_time"
+        private const val KEY_LAST_THREAD_ID = "last_thread_id"
         private const val RE_SHOW_ONBOARDING_DAYS = 30 // Show again after 30 days of inactivity
     }
 
@@ -41,5 +42,13 @@ class PreferenceManager(context: Context) {
 
     fun updateLastVisit() {
         sharedPreferences.edit { putLong(KEY_LAST_VISIT, System.currentTimeMillis()) }
+    }
+
+    fun setLastThreadId(threadId: String?) {
+        sharedPreferences.edit { putString(KEY_LAST_THREAD_ID, threadId) }
+    }
+
+    fun getLastThreadId(): String? {
+        return sharedPreferences.getString(KEY_LAST_THREAD_ID, null)
     }
 }

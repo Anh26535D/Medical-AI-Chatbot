@@ -11,6 +11,7 @@ import edu.hust.medicalaichatbot.domain.usecase.chat.CreateThreadUseCase
 import edu.hust.medicalaichatbot.domain.usecase.chat.GetMessagesUseCase
 import edu.hust.medicalaichatbot.domain.usecase.chat.SendMessageUseCase
 import edu.hust.medicalaichatbot.utils.Constants
+import edu.hust.medicalaichatbot.utils.PreferenceManager
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import java.util.UUID
@@ -37,8 +38,18 @@ class ChatViewModel(
         }
         .cachedIn(viewModelScope)
 
-    fun setCurrentThread(threadId: String) {
+    fun setCurrentThread(threadId: String?) {
         _currentThreadId.value = threadId
+    }
+
+    fun saveCurrentThreadId(preferenceManager: PreferenceManager) {
+        preferenceManager.setLastThreadId(_currentThreadId.value)
+    }
+
+    fun restoreLastThread(preferenceManager: PreferenceManager) {
+        if (_currentThreadId.value == null) {
+            _currentThreadId.value = preferenceManager.getLastThreadId()
+        }
     }
 
     fun setUserId(userId: String) {

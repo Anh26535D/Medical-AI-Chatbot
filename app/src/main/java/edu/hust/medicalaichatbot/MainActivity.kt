@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -119,8 +120,19 @@ fun MedicalApp(
 
     val showBars = currentRoute in listOf("home", "history", "profile", "help")
     var prefillText by remember { mutableStateOf("") }
+    val currentThreadId by chatViewModel.currentThreadId.collectAsState()
 
-    androidx.compose.runtime.LaunchedEffect(authState) {
+    // Save thread ID whenever it changes
+    LaunchedEffect(currentThreadId) {
+        chatViewModel.saveCurrentThreadId(preferenceManager)
+    }
+
+    // Restore thread ID on start
+    LaunchedEffect(Unit) {
+        chatViewModel.restoreLastThread(preferenceManager)
+    }
+
+    LaunchedEffect(authState) {
         when (authState) {
             is AuthState.Success -> {
                 val userId = (authState as AuthState.Success).user.phoneNumber
@@ -240,6 +252,12 @@ fun MedicalApp(
                         viewModel = historyViewModel,
                         authViewModel = authViewModel,
                         onThreadClick = { threadId ->
+                            chatViewModel.setCurrentThread(threadId)
+                            navController.navigate("home") {
+                                popUpTo("history") { inclusive = false }
+                            }
+                        },
+                        onViewSummary = { threadId ->
                             navController.navigate("summary/$threadId")
                         },
                         onLoginClick = {
@@ -287,7 +305,10 @@ fun MedicalApp(
                         threadId = threadId,
                         viewModel = historyViewModel,
                         onBackClick = {
-                            chatViewModel.setCurrentThread(threadId)
+                            navController.popBackStack()
+                        },
+                        onContinueChat = { id ->
+                            chatViewModel.setCurrentThread(id)
                             navController.navigate("home") {
                                 popUpTo("history") { inclusive = false }
                             }
