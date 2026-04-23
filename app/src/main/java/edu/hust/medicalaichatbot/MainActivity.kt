@@ -32,6 +32,8 @@ import androidx.navigation.compose.rememberNavController
 import edu.hust.medicalaichatbot.data.local.AppDatabase
 import edu.hust.medicalaichatbot.data.repository.AuthRepository
 import edu.hust.medicalaichatbot.data.repository.ChatRepositoryImpl
+import edu.hust.medicalaichatbot.domain.usecase.chat.CreateThreadUseCase
+import edu.hust.medicalaichatbot.domain.usecase.chat.DeleteThreadUseCase
 import edu.hust.medicalaichatbot.domain.usecase.chat.GetMessagesUseCase
 import edu.hust.medicalaichatbot.domain.usecase.chat.GetThreadsUseCase
 import edu.hust.medicalaichatbot.domain.usecase.chat.SendMessageUseCase
@@ -78,14 +80,16 @@ class MainActivity : ComponentActivity() {
                 )
                 val getMessagesUseCase = GetMessagesUseCase(chatRepository)
                 val sendMessageUseCase = SendMessageUseCase(chatRepository)
+                val createThreadUseCase = CreateThreadUseCase(chatRepository)
                 
                 val chatViewModel: ChatViewModel = viewModel(
-                    factory = ChatViewModel.Factory(getMessagesUseCase, sendMessageUseCase)
+                    factory = ChatViewModel.Factory(getMessagesUseCase, sendMessageUseCase, createThreadUseCase)
                 )
 
                 val getThreadsUseCase = GetThreadsUseCase(chatRepository)
+                val deleteThreadUseCase = DeleteThreadUseCase(chatRepository)
                 val historyViewModel: HistoryViewModel = viewModel(
-                    factory = HistoryViewModel.Factory(getThreadsUseCase)
+                    factory = HistoryViewModel.Factory(getThreadsUseCase, deleteThreadUseCase, getMessagesUseCase)
                 )
 
                 MedicalApp(authViewModel, chatViewModel, historyViewModel)
@@ -227,6 +231,12 @@ fun MedicalApp(
                         },
                         onLoginClick = {
                             navController.navigate("login")
+                        },
+                        onNewChatClick = {
+                            chatViewModel.startNewChat()
+                            navController.navigate("home") {
+                                popUpTo("history") { inclusive = false }
+                            }
                         }
                     )
                 }
