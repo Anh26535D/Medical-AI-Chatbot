@@ -7,7 +7,7 @@ enum class MessageRole(val value: String) {
 }
 
 enum class TriageTag(val level: Int) {
-    RED(4), ORANGE(3), YELLOW(2), GREEN(1)
+    NONE(0), GREEN(1), YELLOW(2), ORANGE(3), RED(4)
 }
 
 data class ChatMessage(

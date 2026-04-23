@@ -367,11 +367,14 @@ fun AiAssessmentSection(response: edu.hust.medicalaichatbot.utils.ParsedLlmRespo
 
 @Composable
 fun TriageLevelBox(tag: TriageTag) {
+    if (tag == TriageTag.NONE) return
+
     val (color, title, description) = when (tag) {
         TriageTag.RED -> Triple(Color.Red, "CẤP CỨU NGAY (Mức 4)", "Triệu chứng nguy hiểm tính mạng. Cần can thiệp y tế ngay lập tức.")
         TriageTag.ORANGE -> Triple(Color(0xFFFFA500), "CẦN ĐI KHÁM (Mức 3)", "Triệu chứng cần bác sĩ chẩn đoán sớm để tránh diễn biến xấu.")
         TriageTag.YELLOW -> Triple(Color(0xFFFFD700), "HỎI DƯỢC SĨ (Mức 2)", "Triệu chứng nhẹ, có thể điều trị bằng thuốc không kê đơn dưới sự hướng dẫn.")
         TriageTag.GREEN -> Triple(SuccessGreen, "TỰ CHĂM SÓC (Mức 1)", "Tình trạng ổn định. Có thể tự theo dõi và chăm sóc tại nhà.")
+        TriageTag.NONE -> Triple(Color.Transparent, "", "")
     }
 
     Surface(
@@ -476,8 +479,8 @@ fun TriageActionButtons(tag: TriageTag) {
                     Text("Tìm nhà thuốc gần nhất")
                 }
             }
-            TriageTag.GREEN -> {
-                // No specific action button for GREEN yet, or can add "Health Tips"
+            TriageTag.GREEN, TriageTag.NONE -> {
+                // No specific action button for GREEN or NONE
             }
         }
     }
