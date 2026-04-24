@@ -6,6 +6,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,8 +21,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Info
@@ -186,7 +189,7 @@ fun ChatSection(
             Column(modifier = Modifier.fillMaxSize()) {
                 AiWarningBanner(modifier = Modifier.padding(16.dp))
 
-                LazyColumn(
+                LazyColumn (
                     state = listState,
                     modifier = Modifier
                         .fillMaxWidth()
@@ -285,7 +288,7 @@ fun QuickReplyButtons(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(start = 48.dp, bottom = 8.dp),
+            .padding(start = 16.dp, bottom = 12.dp, end = 16.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         Text(
@@ -294,21 +297,29 @@ fun QuickReplyButtons(
             color = TextGray,
             modifier = Modifier.padding(bottom = 2.dp)
         )
-        questions.forEach { question ->
-            Surface(
-                onClick = { onQuestionClick(question) },
-                shape = RoundedCornerShape(12.dp),
-                color = Color.White,
-                border = androidx.compose.foundation.BorderStroke(1.dp, PrimaryBlue.copy(alpha = 0.2f)),
-                shadowElevation = 1.dp
-            ) {
-                Text(
-                    text = question,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
-                    fontSize = 14.sp,
-                    color = PrimaryBlue,
-                    lineHeight = 20.sp
-                )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            questions.forEach { question ->
+                Surface(
+                    onClick = { onQuestionClick(question) },
+                    shape = RoundedCornerShape(12.dp),
+                    color = Color.White,
+                    border = androidx.compose.foundation.BorderStroke(1.dp, PrimaryBlue.copy(alpha = 0.2f)),
+                    shadowElevation = 1.dp
+                ) {
+                    Text(
+                        text = question,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
+                        fontSize = 14.sp,
+                        color = PrimaryBlue,
+                        lineHeight = 20.sp,
+                        maxLines = 1
+                    )
+                }
             }
         }
     }
@@ -411,7 +422,7 @@ fun AiAssessmentSection(response: ChatResponse) {
             Icon(Icons.Default.MedicalServices, null, tint = PrimaryBlue, modifier = Modifier.size(16.dp))
             Spacer(modifier = Modifier.width(8.dp))
             Text(
-                text = "Bác sĩ AI nhận định",
+                text = "Trợ lý AI nhận định",
                 fontSize = 13.sp,
                 fontWeight = FontWeight.Bold,
                 color = PrimaryBlue
@@ -620,57 +631,68 @@ fun WelcomeScreen(onSuggestedClick: (String) -> Unit) {
         "Tôi muốn kiểm tra triệu chứng"
     )
 
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
-            .padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
+            .padding(24.dp)
     ) {
-        Text(
-            text = "Xin chào!",
-            fontSize = 24.sp,
-            fontWeight = FontWeight.Bold,
-            color = PrimaryBlue
-        )
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState()),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Text(
+                text = "Xin chào!",
+                fontSize = 24.sp,
+                fontWeight = FontWeight.Bold,
+                color = PrimaryBlue
+            )
 
-        Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
-        Text(
-            text = stringResource(R.string.chat_welcome_msg),
-            fontSize = 16.sp,
-            color = TextGray,
-            lineHeight = 24.sp,
-            textAlign = androidx.compose.ui.text.style.TextAlign.Center
-        )
+            Text(
+                text = stringResource(R.string.chat_welcome_msg),
+                fontSize = 16.sp,
+                color = TextGray,
+                lineHeight = 24.sp,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+            )
 
-        Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(32.dp))
 
-        suggestions.forEach { suggestion ->
-            Surface(
-                onClick = { onSuggestedClick(suggestion) },
-                shape = RoundedCornerShape(16.dp),
-                color = Color.White,
-                shadowElevation = 1.dp,
-                border = androidx.compose.foundation.BorderStroke(1.dp, SurfaceGray)
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                Text(
-                    text = suggestion,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 20.dp, vertical = 16.dp),
-                    fontSize = 15.sp,
-                    color = Color.DarkGray
-                )
+                suggestions.forEach { suggestion ->
+                    Surface(
+                        onClick = { onSuggestedClick(suggestion) },
+                        shape = RoundedCornerShape(16.dp),
+                        color = Color.White,
+                        shadowElevation = 1.dp,
+                        border = androidx.compose.foundation.BorderStroke(1.dp, SurfaceGray)
+                    ) {
+                        Text(
+                            text = suggestion,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 20.dp, vertical = 16.dp),
+                            fontSize = 15.sp,
+                            color = Color.DarkGray
+                        )
+                    }
+                }
             }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            Text(
+                text = "Hoặc nhập triệu chứng phía dưới",
+                fontSize = 13.sp,
+                color = TextGray
+            )
         }
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        Text(
-            text = "Hoặc nhập triệu chứng phía dưới",
-            fontSize = 13.sp,
-            color = TextGray
-        )
     }
 }
