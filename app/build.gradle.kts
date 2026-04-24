@@ -59,8 +59,8 @@ fun getPrompt(key: String, default: String = ""): String {
     return "\"${value.replace("\"", "\\\"").replace("\n", "\\n")}\""
 }
 
-val appVersionCode = 3
-val appVersionName = "0.1.0-alpha.1"
+val appVersionCode = 4
+val appVersionName = "0.1.1-alpha.1"
 
 android {
     namespace = "edu.hust.medicalaichatbot"
