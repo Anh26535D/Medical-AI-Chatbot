@@ -94,15 +94,22 @@ object ChatResponseParser {
 
     private fun extractTag(text: String, tagName: String): String? {
         val regex = Regex("<$tagName>(.*?)</$tagName>", RegexOption.DOT_MATCHES_ALL)
-        val match = regex.find(text)
-        if (match != null) {
-            return match.groupValues[1].trim()
+        val matches = regex.findAll(text).toList()
+        
+        // Ưu tiên lấy tag đóng mở hoàn chỉnh cuối cùng
+        if (matches.isNotEmpty()) {
+            return matches.last().groupValues[1].trim()
         }
 
+        // Trường hợp AI đang viết dở (chưa có thẻ đóng) hoặc chỉ có thẻ mở
         val openTag = "<$tagName>"
-        if (text.contains(openTag)) {
-            val startIndex = text.indexOf(openTag) + openTag.length
+        val lastOpenIndex = text.lastIndexOf(openTag)
+        
+        if (lastOpenIndex != -1) {
+            val startIndex = lastOpenIndex + openTag.length
             val content = text.substring(startIndex).trim()
+            
+            // Tìm thẻ mở tiếp theo của bất kỳ tag nào để giới hạn nội dung
             val nextTagIndex = content.indexOf("<")
             return if (nextTagIndex != -1) {
                 content.substring(0, nextTagIndex).trim()
