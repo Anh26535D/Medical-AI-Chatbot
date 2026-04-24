@@ -2,7 +2,21 @@ package edu.hust.medicalaichatbot.ui.screens
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
@@ -11,14 +25,18 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.filled.ArrowForward
-import androidx.compose.material3.*
+import androidx.compose.material.icons.filled.Shield
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
@@ -44,7 +62,7 @@ fun OnboardingScreen(onFinish: () -> Unit) {
         OnboardingPage(
             title = "Hỏi đáp sức khỏe 24/7",
             description = "Nhận tư vấn ngay lập tức từ AI thông minh cho mọi triệu chứng của bạn.",
-            imageRes = android.R.drawable.ic_menu_gallery,
+            imageRes = edu.hust.medicalaichatbot.R.drawable.welcome_1,
             buttonText = "Tiếp tục",
             overlays = {
                 // Top right chip
@@ -79,7 +97,7 @@ fun OnboardingScreen(onFinish: () -> Unit) {
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Surface(shape = CircleShape, color = Color(0xFFE8F5E9), modifier = Modifier.size(24.dp)) {
-                            // Icon placeholder
+                            Icon(Icons.Default.Shield, contentDescription = null, tint = Color(0xFF4CAF50), modifier = Modifier.size(14.dp))
                         }
                         Spacer(modifier = Modifier.width(8.dp))
                         Column {
@@ -93,37 +111,13 @@ fun OnboardingScreen(onFinish: () -> Unit) {
         OnboardingPage(
             title = "Chăm sóc gia đình thân yêu",
             description = "Quản lý sức khỏe cho cả nhà. Nhận tư vấn nhanh cho con trẻ, cha mẹ và bản thân bác ngay tại nhà.",
-            imageRes = android.R.drawable.ic_menu_gallery,
-            buttonText = "Tiếp theo",
-            overlays = {
-                Surface(
-                    modifier = Modifier
-                        .align(Alignment.BottomCenter)
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    shape = RoundedCornerShape(16.dp),
-                    color = Color.White.copy(alpha = 0.9f)
-                ) {
-                    Row(
-                        modifier = Modifier.padding(12.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Surface(shape = CircleShape, color = Color(0xFFE8F5E9), modifier = Modifier.size(32.dp)) {
-                            // Icon
-                        }
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Column {
-                            Text("Kết nối gia đình", fontSize = 14.sp, fontWeight = FontWeight.Bold)
-                            Text("Mọi thành viên đều được chăm sóc", fontSize = 12.sp, color = TextGray)
-                        }
-                    }
-                }
-            }
+            imageRes = edu.hust.medicalaichatbot.R.drawable.welcome_2,
+            buttonText = "Tiếp tục",
         ),
         OnboardingPage(
             title = "An toàn và Bảo mật tuyệt đối",
             description = "Dữ liệu sức khỏe của bạn luôn được bảo vệ nghiêm ngặt và chỉ bạn mới có quyền truy cập.",
-            imageRes = android.R.drawable.ic_menu_gallery,
+            imageRes = edu.hust.medicalaichatbot.R.drawable.logo,
             buttonText = "Bắt đầu ngay",
             overlays = {
                 Column(
@@ -136,7 +130,9 @@ fun OnboardingScreen(onFinish: () -> Unit) {
                         color = PrimaryBlue,
                         shadowElevation = 8.dp
                     ) {
-                         // Security Icon
+                         Box(contentAlignment = Alignment.Center) {
+                             Icon(Icons.Default.Shield, contentDescription = null, tint = Color.White, modifier = Modifier.size(40.dp))
+                         }
                     }
                     Spacer(modifier = Modifier.height(16.dp))
                     Surface(
@@ -174,13 +170,11 @@ fun OnboardingScreen(onFinish: () -> Unit) {
             verticalAlignment = Alignment.CenterVertically
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Surface(
-                    modifier = Modifier.size(32.dp),
-                    shape = CircleShape,
-                    color = PrimaryBlue
-                ) {
-                    // Icon placeholder
-                }
+                Image(
+                    painter = painterResource(id = edu.hust.medicalaichatbot.R.drawable.logo),
+                    contentDescription = null,
+                    modifier = Modifier.size(24.dp)
+                )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     text = "Sức Khỏe Việt AI",
@@ -220,8 +214,10 @@ fun OnboardingScreen(onFinish: () -> Unit) {
                     Image(
                         painter = painterResource(id = page.imageRes),
                         contentDescription = null,
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop
+                        modifier = Modifier
+                            .fillMaxHeight()
+                            .padding(if (page.imageRes == edu.hust.medicalaichatbot.R.drawable.logo) 40.dp else 0.dp),
+                        contentScale = ContentScale.Fit
                     )
                     page.overlays(this)
                 }
@@ -276,6 +272,15 @@ fun OnboardingScreen(onFinish: () -> Unit) {
 
             Spacer(modifier = Modifier.height(32.dp))
 
+            if (pagerState.currentPage == pages.size - 1) {
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = "Tuân thủ tiêu chuẩn bảo mật y tế quốc tế",
+                    fontSize = 12.sp,
+                    color = TextGray
+                )
+            }
+
             Button(
                 onClick = {
                     if (pagerState.currentPage < pages.size - 1) {
@@ -301,15 +306,6 @@ fun OnboardingScreen(onFinish: () -> Unit) {
                     Spacer(modifier = Modifier.width(8.dp))
                     Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null)
                 }
-            }
-            
-            if (pagerState.currentPage == pages.size - 1) {
-                Spacer(modifier = Modifier.height(16.dp))
-                Text(
-                    text = "Tuân thủ tiêu chuẩn bảo mật y tế quốc tế",
-                    fontSize = 12.sp,
-                    color = TextGray
-                )
             }
         }
     }
