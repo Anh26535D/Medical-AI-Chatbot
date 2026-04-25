@@ -34,6 +34,7 @@ import androidx.paging.compose.collectAsLazyPagingItems
 import edu.hust.medicalaichatbot.data.local.AppDatabase
 import edu.hust.medicalaichatbot.data.repository.AuthRepository
 import edu.hust.medicalaichatbot.data.repository.ChatRepositoryImpl
+import edu.hust.medicalaichatbot.data.repository.ProfileRepository
 import edu.hust.medicalaichatbot.domain.usecase.chat.CreateThreadUseCase
 import edu.hust.medicalaichatbot.domain.usecase.chat.DeleteThreadUseCase
 import edu.hust.medicalaichatbot.domain.usecase.chat.GetMessagesUseCase
@@ -54,10 +55,10 @@ import edu.hust.medicalaichatbot.ui.screens.RegisterScreen
 import edu.hust.medicalaichatbot.ui.screens.SplashScreen
 import edu.hust.medicalaichatbot.ui.theme.BackgroundGray
 import edu.hust.medicalaichatbot.ui.theme.MedicalAIChatbotTheme
-import edu.hust.medicalaichatbot.ui.viewmodel.AuthState
 import edu.hust.medicalaichatbot.ui.viewmodel.AuthViewModel
 import edu.hust.medicalaichatbot.ui.viewmodel.ChatViewModel
 import edu.hust.medicalaichatbot.ui.viewmodel.HistoryViewModel
+import edu.hust.medicalaichatbot.ui.viewmodel.ProfileViewModel
 import edu.hust.medicalaichatbot.utils.Constants
 import edu.hust.medicalaichatbot.utils.PreferenceManager
 
@@ -98,7 +99,12 @@ class MainActivity : ComponentActivity() {
                     factory = HistoryViewModel.Factory(getThreadsUseCase, deleteThreadUseCase, getMessagesUseCase)
                 )
 
-                MedicalApp(authViewModel, chatViewModel, historyViewModel, preferenceManager)
+                val profileRepository = ProfileRepository(database.userProfileDao())
+                val profileViewModel: ProfileViewModel = viewModel(
+                    factory = ProfileViewModel.Factory(profileRepository, authViewModel)
+                )
+
+                MedicalApp(authViewModel, chatViewModel, historyViewModel, profileViewModel, preferenceManager)
             }
         }
     }
@@ -110,6 +116,7 @@ fun MedicalApp(
     authViewModel: AuthViewModel, 
     chatViewModel: ChatViewModel,
     historyViewModel: HistoryViewModel,
+    profileViewModel: ProfileViewModel,
     preferenceManager: PreferenceManager
 ) {
     val navController = rememberNavController()
@@ -266,6 +273,7 @@ fun MedicalApp(
                 }
                 composable("profile") {
                     ProfileScreen(
+                        profileViewModel = profileViewModel,
                         authViewModel = authViewModel,
                         onLoginClick = {
                             navController.navigate("login")

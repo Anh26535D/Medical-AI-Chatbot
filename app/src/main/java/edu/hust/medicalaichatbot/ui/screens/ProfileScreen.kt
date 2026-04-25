@@ -47,11 +47,12 @@ fun ProfileScreen(
     authViewModel: AuthViewModel = viewModel(),
     onLoginClick: () -> Unit = {}
 ) {
-    val userProfile by profileViewModel.userProfile.collectAsState()
+    val userProfiles by profileViewModel.userProfiles.collectAsState()
     val authState by authViewModel.authState.collectAsState()
     val isGuest = authState is AuthState.Guest
     
-    var isEditing by remember { mutableStateOf(false) }
+    var editingProfileId by remember { mutableStateOf<Int?>(null) }
+    var isAddingNew by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
@@ -87,49 +88,68 @@ fun ProfileScreen(
             
             Spacer(modifier = Modifier.height(12.dp))
             
-            if (userProfile.isInitial || isEditing) {
-                EditProfileCard(
-                    profile = userProfile,
-                    onSave = { age, birthYear, gender, conditions ->
-                        profileViewModel.updateProfile(age, birthYear, gender, conditions)
-                        isEditing = false
-                    },
-                    onCancel = { if (!userProfile.isInitial) isEditing = false }
-                )
-            } else {
-                MainProfileCard(
-                    profile = userProfile,
-                    onEditClick = { isEditing = true }
-                )
+            userProfiles.forEach { profile ->
+                val isEditing = editingProfileId == profile.id || (profile.isInitial && profile.isPrimary && !isAddingNew)
+                
+                if (isEditing) {
+                    EditProfileCard(
+                        profile = profile,
+                        isPrimary = profile.isPrimary,
+                        onSave = { name, birthYear, gender, conditions ->
+                            profileViewModel.updateProfile(profile.id, name, birthYear, gender, conditions)
+                            editingProfileId = null
+                        },
+                        onCancel = { editingProfileId = null }
+                    )
+                } else {
+                    MainProfileCard(
+                        profile = profile,
+                        isPrimary = profile.isPrimary,
+                        onEditClick = { editingProfileId = profile.id },
+                        onUpdateConditions = { newConditions ->
+                            profileViewModel.updateProfile(
+                                profile.id,
+                                profile.name, 
+                                profile.birthYear, 
+                                profile.gender, 
+                                newConditions
+                            )
+                        }
+                    )
+                }
+                Spacer(modifier = Modifier.height(12.dp))
             }
-            
-            Spacer(modifier = Modifier.height(12.dp))
-            
-            // Dependent profiles
-            DependentProfileItem(name = "Bé", role = "Người phụ thuộc", color = Color(0xFF81C784), icon = Icons.Default.Face)
-            DependentProfileItem(name = "Mẹ", role = "Người phụ thuộc", color = Color(0xFF64B5F6), icon = Icons.Default.Woman)
-            DependentProfileItem(name = "Bố", role = "Người phụ thuộc", color = Color(0xFF90A4AE), icon = Icons.Default.Man)
-            
-            Spacer(modifier = Modifier.height(12.dp))
-            
-            // Add new profile button
-            Surface(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp)
-                    .clickable { },
-                shape = RoundedCornerShape(12.dp),
-                color = Color(0xFFF0F7FF),
-                border = androidx.compose.foundation.BorderStroke(1.dp, PrimaryBlue.copy(alpha = 0.3f))
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxSize(),
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically
+
+            if (isAddingNew) {
+                EditProfileCard(
+                    profile = UserProfile(name = "", isInitial = false),
+                    onSave = { name, birthYear, gender, conditions ->
+                        profileViewModel.addProfile(name, birthYear, gender, conditions)
+                        isAddingNew = false
+                    },
+                    onCancel = { isAddingNew = false }
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+            } else {
+                // Add new profile button
+                Surface(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp)
+                        .clickable { isAddingNew = true },
+                    shape = RoundedCornerShape(12.dp),
+                    color = Color(0xFFF0F7FF),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, PrimaryBlue.copy(alpha = 0.3f))
                 ) {
-                    Icon(Icons.Default.PersonAdd, contentDescription = null, tint = PrimaryBlue, modifier = Modifier.size(20.dp))
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(text = "Thêm hồ sơ mới", color = PrimaryBlue, fontWeight = FontWeight.Bold)
+                    Row(
+                        modifier = Modifier.fillMaxSize(),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(Icons.Default.PersonAdd, contentDescription = null, tint = PrimaryBlue, modifier = Modifier.size(20.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(text = "Thêm hồ sơ mới", color = PrimaryBlue, fontWeight = FontWeight.Bold)
+                    }
                 }
             }
             
@@ -163,10 +183,11 @@ fun ProfileScreen(
 @Composable
 fun EditProfileCard(
     profile: UserProfile,
+    isPrimary: Boolean = false,
     onSave: (String, String, String, List<String>) -> Unit,
     onCancel: () -> Unit
 ) {
-    var age by remember { mutableStateOf(profile.age) }
+    var name by remember { mutableStateOf(profile.name) }
     var birthYear by remember { mutableStateOf(profile.birthYear) }
     var gender by remember { mutableStateOf(profile.gender) }
     var conditionsInput by remember { mutableStateOf(profile.conditions.joinToString(", ")) }
@@ -178,17 +199,27 @@ fun EditProfileCard(
         shadowElevation = 2.dp
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Text(text = if (profile.isInitial) "Nhập thông tin của bạn" else "Chỉnh sửa hồ sơ", fontWeight = FontWeight.Bold, fontSize = 18.sp)
+            Text(
+                text = if (profile.isInitial && isPrimary) "Nhập thông tin của bạn" 
+                       else if (isPrimary) "Chỉnh sửa hồ sơ của bạn"
+                       else if (profile.name.isEmpty()) "Thêm hồ sơ mới" 
+                       else "Chỉnh sửa hồ sơ người thân", 
+                fontWeight = FontWeight.Bold, 
+                fontSize = 18.sp
+            )
             Spacer(modifier = Modifier.height(16.dp))
             
-            OutlinedTextField(
-                value = age,
-                onValueChange = { age = it },
-                label = { Text("Tuổi") },
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(12.dp)
-            )
-            Spacer(modifier = Modifier.height(8.dp))
+            if (!isPrimary) {
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text("Họ và tên") },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp)
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+            }
+            
             OutlinedTextField(
                 value = birthYear,
                 onValueChange = { birthYear = it },
@@ -228,7 +259,7 @@ fun EditProfileCard(
                 Button(
                     onClick = {
                         val conditions = conditionsInput.split(",").map { it.trim() }.filter { it.isNotEmpty() }
-                        onSave(age, birthYear, gender, conditions)
+                        onSave(name, birthYear, gender, conditions)
                     },
                     modifier = Modifier.weight(1f),
                     shape = RoundedCornerShape(12.dp),
@@ -244,8 +275,13 @@ fun EditProfileCard(
 @Composable
 fun MainProfileCard(
     profile: UserProfile,
-    onEditClick: () -> Unit
+    isPrimary: Boolean = true,
+    onEditClick: () -> Unit,
+    onUpdateConditions: (List<String>) -> Unit
 ) {
+    var isEditingConditions by remember { mutableStateOf(false) }
+    var conditionsInput by remember { mutableStateOf(profile.conditions.joinToString(", ")) }
+
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
@@ -257,16 +293,26 @@ fun MainProfileCard(
                 Surface(
                     modifier = Modifier.size(56.dp),
                     shape = CircleShape,
-                    color = PrimaryBlue
+                    color = if (isPrimary) PrimaryBlue else Color(0xFF81C784)
                 ) {
                     Box(contentAlignment = Alignment.Center) {
-                        Icon(Icons.Default.Person, contentDescription = null, tint = Color.White, modifier = Modifier.size(32.dp))
+                        Icon(if (isPrimary) Icons.Default.Person else Icons.Default.Face, contentDescription = null, tint = Color.White, modifier = Modifier.size(32.dp))
                     }
                 }
                 Spacer(modifier = Modifier.width(16.dp))
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(text = profile.name, fontSize = 18.sp, fontWeight = FontWeight.Bold)
-                    Text(text = "Chủ tài khoản", fontSize = 12.sp, color = TextGray)
+                    Text(
+                        text = if (isPrimary) {
+                            if (profile.name.isEmpty() || profile.name == "Tôi") "Chủ tài khoản" else profile.name
+                        } else {
+                            profile.name
+                        },
+                        fontSize = 18.sp, 
+                        fontWeight = FontWeight.Bold
+                    )
+                    if (!isPrimary) {
+                        Text(text = "Người phụ thuộc", fontSize = 12.sp, color = TextGray)
+                    }
                 }
                 IconButton(onClick = onEditClick) {
                     Icon(Icons.Default.Edit, contentDescription = "Sửa", tint = TextGray, modifier = Modifier.size(20.dp))
@@ -276,7 +322,7 @@ fun MainProfileCard(
             Spacer(modifier = Modifier.height(16.dp))
             
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                InfoBox(label = "Tuổi", value = profile.age, subValue = "(${profile.birthYear})", modifier = Modifier.weight(1f))
+                InfoBox(label = "Năm sinh", value = profile.birthYear, subValue = "(${profile.age} tuổi)", modifier = Modifier.weight(1f))
                 InfoBox(label = "Giới tính", value = profile.gender, modifier = Modifier.weight(1f))
             }
             
@@ -299,20 +345,43 @@ fun MainProfileCard(
                             Text(text = "Bệnh nền", fontSize = 13.sp, fontWeight = FontWeight.Bold)
                         }
                         Text(
-                            text = "Cập nhật",
+                            text = if (isEditingConditions) "Lưu" else "Cập nhật",
                             fontSize = 12.sp,
                             color = PrimaryBlue,
                             fontWeight = FontWeight.Medium,
-                            modifier = Modifier.clickable { onEditClick() }
+                            modifier = Modifier.clickable { 
+                                if (isEditingConditions) {
+                                    val conditions = conditionsInput.split(",").map { it.trim() }.filter { it.isNotEmpty() }
+                                    onUpdateConditions(conditions)
+                                    isEditingConditions = false
+                                } else {
+                                    isEditingConditions = true
+                                }
+                            }
                         )
                     }
                     Spacer(modifier = Modifier.height(8.dp))
-                    if (profile.conditions.isEmpty()) {
-                        Text(text = "Chưa có thông tin bệnh nền", fontSize = 12.sp, color = TextGray)
+                    
+                    if (isEditingConditions) {
+                        OutlinedTextField(
+                            value = conditionsInput,
+                            onValueChange = { conditionsInput = it },
+                            modifier = Modifier.fillMaxWidth(),
+                            placeholder = { Text("Nhập bệnh nền...", fontSize = 12.sp) },
+                            shape = RoundedCornerShape(8.dp),
+                            colors = TextFieldDefaults.colors(
+                                focusedContainerColor = Color.White,
+                                unfocusedContainerColor = Color.White
+                            )
+                        )
                     } else {
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            profile.conditions.forEach { condition ->
-                                DiseaseTag(condition)
+                        if (profile.conditions.isEmpty()) {
+                            Text(text = "Chưa có thông tin bệnh nền", fontSize = 12.sp, color = TextGray)
+                        } else {
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                profile.conditions.forEach { condition ->
+                                    DiseaseTag(condition)
+                                }
                             }
                         }
                     }

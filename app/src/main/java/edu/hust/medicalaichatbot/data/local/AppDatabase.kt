@@ -6,18 +6,21 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import edu.hust.medicalaichatbot.data.local.dao.ChatDao
 import edu.hust.medicalaichatbot.data.local.dao.UserDao
+import edu.hust.medicalaichatbot.data.local.dao.UserProfileDao
 import edu.hust.medicalaichatbot.data.local.entity.ChatMessageEntity
 import edu.hust.medicalaichatbot.data.local.entity.ChatThread
 import edu.hust.medicalaichatbot.data.local.entity.User
+import edu.hust.medicalaichatbot.data.local.entity.UserProfileEntity
 
 @Database(
-    entities = [User::class, ChatThread::class, ChatMessageEntity::class],
-    version = 5,
+    entities = [User::class, ChatThread::class, ChatMessageEntity::class, UserProfileEntity::class],
+    version = 6,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
     abstract fun userDao(): UserDao
     abstract fun chatDao(): ChatDao
+    abstract fun userProfileDao(): UserProfileDao
 
     companion object {
         @Volatile
