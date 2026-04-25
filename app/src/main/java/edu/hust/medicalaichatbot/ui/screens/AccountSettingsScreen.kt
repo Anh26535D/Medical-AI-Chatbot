@@ -21,6 +21,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import edu.hust.medicalaichatbot.BuildConfig
 import edu.hust.medicalaichatbot.ui.theme.BackgroundGray
 import edu.hust.medicalaichatbot.ui.theme.PrimaryBlue
 import edu.hust.medicalaichatbot.ui.theme.SurfaceGray
@@ -35,8 +36,9 @@ fun AccountSettingsScreen(
     onLogoutSuccess: () -> Unit,
     onLoginClick: () -> Unit
 ) {
-    val authState by authViewModel.authState.collectAsState()
-    val isSuccess = authState is edu.hust.medicalaichatbot.ui.viewmodel.AuthState.Success
+    val currentUser by authViewModel.currentUser.collectAsState()
+    val isGuest by authViewModel.isGuest.collectAsState()
+    val isLoggedIn = currentUser != null
     
     Scaffold(
         topBar = {
@@ -63,7 +65,7 @@ fun AccountSettingsScreen(
                 .verticalScroll(rememberScrollState())
                 .padding(16.dp)
         ) {
-            if (!isSuccess) {
+            if (!isLoggedIn) {
                 GuestAccountPlaceholder(onLoginClick)
             } else {
                 // User Info Header
@@ -87,7 +89,7 @@ fun AccountSettingsScreen(
                         }
                         Spacer(modifier = Modifier.width(16.dp))
                         Column {
-                            val user = (authState as edu.hust.medicalaichatbot.ui.viewmodel.AuthState.Success).user
+                            val user = currentUser!!
                             Text(text = user.name, fontSize = 18.sp, fontWeight = FontWeight.Bold)
                             Text(text = user.phoneNumber, fontSize = 14.sp, color = TextGray)
                         }
@@ -132,11 +134,11 @@ fun AccountSettingsScreen(
                 }
             }
             
-            if (isSuccess) {
+            if (isLoggedIn || isGuest) {
                 Spacer(modifier = Modifier.height(16.dp))
                 
                 Text(
-                    text = "Phiên bản 1.0.0",
+                    text = "Phiên bản ${BuildConfig.VERSION_NAME}",
                     modifier = Modifier.fillMaxWidth(),
                     textAlign = androidx.compose.ui.text.style.TextAlign.Center,
                     fontSize = 12.sp,

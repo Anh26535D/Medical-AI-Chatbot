@@ -113,7 +113,8 @@ fun MedicalApp(
     preferenceManager: PreferenceManager
 ) {
     val navController = rememberNavController()
-    val authState by authViewModel.authState.collectAsState()
+    val currentUser by authViewModel.currentUser.collectAsState()
+    val isGuest by authViewModel.isGuest.collectAsState()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
     val isImeVisible = WindowInsets.isImeVisible
@@ -132,24 +133,16 @@ fun MedicalApp(
         chatViewModel.restoreLastThread(preferenceManager)
     }
 
-    LaunchedEffect(authState) {
-        when (authState) {
-            is AuthState.Success -> {
-                val userId = (authState as AuthState.Success).user.phoneNumber
-                chatViewModel.setUserId(userId)
-                historyViewModel.setUserId(userId)
-            }
-
-            is AuthState.Guest -> {
-                chatViewModel.setUserId("guest")
-                historyViewModel.setUserId("guest")
-            }
-
-            else -> {
-                chatViewModel.setUserId("guest")
-                historyViewModel.setUserId("guest")
-            }
+    LaunchedEffect(currentUser, isGuest) {
+        val userId = if (currentUser != null) {
+            currentUser!!.phoneNumber
+        } else if (isGuest) {
+            "guest"
+        } else {
+            "guest"
         }
+        chatViewModel.setUserId(userId)
+        historyViewModel.setUserId(userId)
     }
 
     Scaffold(

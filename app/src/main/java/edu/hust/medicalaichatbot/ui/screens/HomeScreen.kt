@@ -628,7 +628,7 @@ fun WelcomeScreen(onSuggestedClick: (String) -> Unit) {
         "Tôi bị đau đầu và sốt",
         "Tôi muốn hỏi về đau bụng",
         "Tôi cần tư vấn về giấc ngủ",
-        "Tôi muốn kiểm tra triệu chứng"
+        "Tôi đang bị đau chân"
     )
 
     Box(

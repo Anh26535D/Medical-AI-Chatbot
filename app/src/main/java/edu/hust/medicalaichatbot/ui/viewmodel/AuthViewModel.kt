@@ -14,11 +14,19 @@ class AuthViewModel(private val repository: AuthRepository) : ViewModel() {
     private val _authState = MutableStateFlow<AuthState>(AuthState.Idle)
     val authState: StateFlow<AuthState> = _authState
 
+    private val _currentUser = MutableStateFlow<User?>(null)
+    val currentUser: StateFlow<User?> = _currentUser
+
+    private val _isGuest = MutableStateFlow(false)
+    val isGuest: StateFlow<Boolean> = _isGuest
+
     fun register(user: User) {
         viewModelScope.launch {
             _authState.value = AuthState.Loading
             val result = repository.register(user)
             result.onSuccess {
+                _currentUser.value = user
+                _isGuest.value = false
                 _authState.value = AuthState.Success(user)
             }.onFailure {
                 _authState.value = AuthState.Error(it.message ?: "Registration failed")
@@ -31,6 +39,8 @@ class AuthViewModel(private val repository: AuthRepository) : ViewModel() {
             _authState.value = AuthState.Loading
             val result = repository.login(phone, pass)
             result.onSuccess {
+                _currentUser.value = it
+                _isGuest.value = false
                 _authState.value = AuthState.Success(it)
             }.onFailure {
                 _authState.value = AuthState.Error(it.message ?: "Login failed")
@@ -39,10 +49,14 @@ class AuthViewModel(private val repository: AuthRepository) : ViewModel() {
     }
 
     fun loginAsGuest() {
+        _isGuest.value = true
+        _currentUser.value = null
         _authState.value = AuthState.Guest
     }
 
     fun logout() {
+        _currentUser.value = null
+        _isGuest.value = false
         _authState.value = AuthState.Idle
     }
 

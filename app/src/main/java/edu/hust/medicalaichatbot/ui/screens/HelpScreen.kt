@@ -22,6 +22,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import edu.hust.medicalaichatbot.R
+import edu.hust.medicalaichatbot.BuildConfig
 import edu.hust.medicalaichatbot.ui.components.CommonTopBar
 import edu.hust.medicalaichatbot.ui.theme.BackgroundGray
 import edu.hust.medicalaichatbot.ui.theme.PrimaryBlue
@@ -118,7 +119,7 @@ fun HelpScreen() {
         Spacer(modifier = Modifier.height(48.dp))
         
         Text(
-            text = "Phiên bản ứng dụng 2.4.0 (2026)",
+            text = "Phiên bản ứng dụng ${BuildConfig.VERSION_NAME}",
             modifier = Modifier.fillMaxWidth(),
             textAlign = androidx.compose.ui.text.style.TextAlign.Center,
             fontSize = 12.sp,
