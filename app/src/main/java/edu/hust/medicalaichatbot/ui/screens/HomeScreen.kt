@@ -79,6 +79,7 @@ import edu.hust.medicalaichatbot.ui.theme.SuccessGreen
 import edu.hust.medicalaichatbot.ui.theme.SurfaceGray
 import edu.hust.medicalaichatbot.ui.theme.TextGray
 import edu.hust.medicalaichatbot.ui.viewmodel.ChatViewModel
+import edu.hust.medicalaichatbot.utils.MarkdownUtils
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -386,7 +387,7 @@ fun AiMessage(text: String, timestamp: Long) {
                     }
 
                     Text(
-                        text = parsedResponse.message,
+                        text = MarkdownUtils.parseMarkdown(parsedResponse.message),
                         fontSize = 15.sp,
                         lineHeight = 22.sp,
                         color = Color.Black

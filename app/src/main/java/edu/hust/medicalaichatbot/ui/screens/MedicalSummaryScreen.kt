@@ -56,6 +56,7 @@ import edu.hust.medicalaichatbot.ui.theme.PrimaryBlue
 import edu.hust.medicalaichatbot.ui.theme.SuccessGreen
 import edu.hust.medicalaichatbot.ui.theme.TextGray
 import edu.hust.medicalaichatbot.ui.viewmodel.HistoryViewModel
+import edu.hust.medicalaichatbot.utils.MarkdownUtils
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -186,7 +187,7 @@ fun MedicalSummaryScreen(
                         
                         if (displaySummary.isNotEmpty()) {
                             Text(
-                                text = formatMarkdown(displaySummary),
+                                text = MarkdownUtils.parseMarkdown(displaySummary),
                                 fontSize = 15.sp,
                                 lineHeight = 24.sp,
                                 color = Color(0xFF374151)
@@ -297,39 +298,7 @@ fun TriageSummaryBadge(tag: TriageTag) {
     }
 }
 
-fun formatMarkdown(text: String) = buildAnnotatedString {
-    val lines = text.split("\n")
-    lines.forEachIndexed { index, line ->
-        val currentLine = line.trim()
-        
-        // Handle headers / bold text
-        if (currentLine.startsWith("**") && currentLine.endsWith("**")) {
-            withStyle(style = SpanStyle(fontWeight = FontWeight.Bold, color = Color.Black)) {
-                append(currentLine.removeSurrounding("**"))
-            }
-        } else if (currentLine.contains("**")) {
-            val parts = currentLine.split("**")
-            parts.forEachIndexed { pIndex, part ->
-                if (pIndex % 2 == 1) {
-                    withStyle(style = SpanStyle(fontWeight = FontWeight.Bold, color = Color.Black)) {
-                        append(part)
-                    }
-                } else {
-                    append(part)
-                }
-            }
-        } else if (currentLine.startsWith("* ")) {
-            append("  • ")
-            append(currentLine.substring(2))
-        } else {
-            append(currentLine)
-        }
-        
-        if (index < lines.size - 1) {
-            append("\n")
-        }
-    }
-}
+
 
 @Composable
 fun ChatHistoryItem(role: MessageRole, content: String, timestamp: Long) {

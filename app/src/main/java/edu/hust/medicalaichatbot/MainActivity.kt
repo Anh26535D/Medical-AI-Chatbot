@@ -35,6 +35,7 @@ import edu.hust.medicalaichatbot.data.local.AppDatabase
 import edu.hust.medicalaichatbot.data.repository.AuthRepository
 import edu.hust.medicalaichatbot.data.repository.ChatRepositoryImpl
 import edu.hust.medicalaichatbot.data.repository.ProfileRepository
+import edu.hust.medicalaichatbot.data.service.LocationService
 import edu.hust.medicalaichatbot.domain.usecase.chat.CreateThreadUseCase
 import edu.hust.medicalaichatbot.domain.usecase.chat.DeleteThreadUseCase
 import edu.hust.medicalaichatbot.domain.usecase.chat.GetMessagesUseCase
@@ -79,7 +80,7 @@ class MainActivity : ComponentActivity() {
                     factory = AuthViewModel.Factory(authRepository)
                 )
 
-                val locationService = edu.hust.medicalaichatbot.data.service.LocationService(context)
+                val locationService = LocationService(context)
                 val chatRepository = ChatRepositoryImpl(
                     chatDao = database.chatDao(),
                     modelName = Constants.DEFAULT_MODEL,
